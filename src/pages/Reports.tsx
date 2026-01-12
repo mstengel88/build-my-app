@@ -293,48 +293,48 @@ const Reports = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <FileText className="h-6 w-6 text-primary" />
+            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Service Reports</h1>
-              <p className="text-sm text-muted-foreground">View, edit, and export work logs</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Service Reports</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">View, edit, and export work logs</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button className="gap-2">
+            <Button size="sm" className="gap-2 flex-1 sm:flex-none">
               <Download className="h-4 w-4" />
-              Export Reports
+              <span className="hidden xs:inline">Export</span>
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
               <Printer className="h-4 w-4" />
-              Print
+              <span className="hidden xs:inline">Print</span>
             </Button>
           </div>
         </div>
 
         {/* Report Filters */}
         <Card className="glass">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Filter className="h-4 w-4" />
               Report Filters
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             {/* Date Range Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">From Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(dateRange.from, 'MM/dd/yyyy')}
+                    <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal text-xs sm:text-sm">
+                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                      {format(dateRange.from, 'MM/dd/yy')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -346,13 +346,13 @@ const Reports = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">To Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(dateRange.to, 'MM/dd/yyyy')}
+                    <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal text-xs sm:text-sm">
+                      <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                      {format(dateRange.to, 'MM/dd/yy')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -367,10 +367,10 @@ const Reports = () => {
             </div>
 
             {/* Log Type */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-muted-foreground text-xs">Log Type</Label>
               <Select value={logType} onValueChange={setLogType}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-xs sm:text-sm">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,11 +382,11 @@ const Reports = () => {
             </div>
 
             {/* Account, Location, Employee Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Account (Plow)</Label>
                 <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="All Accounts" />
                   </SelectTrigger>
                   <SelectContent>
@@ -397,10 +397,10 @@ const Reports = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Location (Shovel)</Label>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
@@ -411,10 +411,10 @@ const Reports = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Employee</Label>
                 <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="All Employees" />
                   </SelectTrigger>
                   <SelectContent>
@@ -428,11 +428,11 @@ const Reports = () => {
             </div>
 
             {/* Service Type, Equipment Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Service Type</Label>
                 <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
@@ -444,10 +444,10 @@ const Reports = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label className="text-muted-foreground text-xs">Equipment</Label>
                 <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-xs sm:text-sm">
                     <SelectValue placeholder="All Equipment" />
                   </SelectTrigger>
                   <SelectContent>
@@ -461,21 +461,23 @@ const Reports = () => {
             </div>
 
             {/* Min Snow Depth, Min Salt Used Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs">Min Snow Depth (Inches)</Label>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Min Snow (in)</Label>
                 <Input 
                   type="number" 
-                  placeholder="Any" 
+                  placeholder="Any"
+                  className="h-9 text-xs sm:text-sm"
                   value={minSnowDepth}
                   onChange={(e) => setMinSnowDepth(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs">Min Salt Used (lbs)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs">Min Salt (lbs)</Label>
                 <Input 
                   type="number" 
-                  placeholder="Any" 
+                  placeholder="Any"
+                  className="h-9 text-xs sm:text-sm"
                   value={minSaltUsed}
                   onChange={(e) => setMinSaltUsed(e.target.value)}
                 />
@@ -483,7 +485,7 @@ const Reports = () => {
             </div>
 
             {/* Clear Filters Button */}
-            <Button variant="ghost" className="w-full text-muted-foreground" onClick={clearFilters}>
+            <Button variant="ghost" size="sm" className="w-full text-muted-foreground text-xs" onClick={clearFilters}>
               Clear All Filters
             </Button>
           </CardContent>
@@ -491,54 +493,54 @@ const Reports = () => {
 
         {/* Daily Shifts */}
         <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
+          <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Clock className="h-4 w-4" />
               Daily Shifts ({timeClockEntries?.length || 0} shifts)
             </CardTitle>
-            <Button variant="outline" size="sm">Add Shift</Button>
+            <Button variant="outline" size="sm" className="text-xs">Add Shift</Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Start Time</TableHead>
-                    <TableHead>End Time</TableHead>
-                    <TableHead>Total Hours</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-xs">Employee</TableHead>
+                    <TableHead className="text-xs">Date</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Start</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">End</TableHead>
+                    <TableHead className="text-xs">Hours</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Location</TableHead>
+                    <TableHead className="text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {timeClockEntries?.slice(0, 10).map((entry) => (
                     <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-xs sm:text-sm">
                         {(entry.employees as any)?.name || 'Unknown'}
                       </TableCell>
-                      <TableCell>{format(new Date(entry.clock_in_time), 'MM/dd/yy')}</TableCell>
-                      <TableCell>{formatTime(entry.clock_in_time)}</TableCell>
-                      <TableCell>{formatTime(entry.clock_out_time)}</TableCell>
+                      <TableCell className="text-xs">{format(new Date(entry.clock_in_time), 'MM/dd')}</TableCell>
+                      <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_in_time)}</TableCell>
+                      <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_out_time)}</TableCell>
                       <TableCell>
-                        <span className="text-primary font-medium">
-                          {entry.duration_minutes ? (entry.duration_minutes / 60).toFixed(2) + 'h' : '-'}
+                        <span className="text-primary font-medium text-xs sm:text-sm">
+                          {entry.duration_minutes ? (entry.duration_minutes / 60).toFixed(1) + 'h' : '-'}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <Button variant="link" size="sm" className="p-0 h-auto text-primary">
+                      <TableCell className="hidden md:table-cell">
+                        <Button variant="link" size="sm" className="p-0 h-auto text-primary text-xs">
                           <MapPin className="h-3 w-3 mr-1" />
                           View
                         </Button>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Pencil className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
@@ -546,8 +548,8 @@ const Reports = () => {
                   ))}
                   {(!timeClockEntries || timeClockEntries.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No shifts found for the selected period
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                        No shifts found
                       </TableCell>
                     </TableRow>
                   )}
@@ -558,128 +560,122 @@ const Reports = () => {
         </Card>
 
         {/* Summary Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4">
           <Card className="glass">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground">Total Services</p>
-              <p className="text-3xl font-bold">{summaryStats.total}</p>
+            <CardContent className="p-2 sm:p-4 text-center">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
+              <p className="text-xl sm:text-3xl font-bold">{summaryStats.total}</p>
             </CardContent>
           </Card>
           <Card className="glass">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground">Plow Services</p>
-              <p className="text-3xl font-bold text-primary">{summaryStats.plow}</p>
+            <CardContent className="p-2 sm:p-4 text-center">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Plow</p>
+              <p className="text-xl sm:text-3xl font-bold text-primary">{summaryStats.plow}</p>
             </CardContent>
           </Card>
           <Card className="glass">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground">Shovel Services</p>
-              <p className="text-3xl font-bold text-info">{summaryStats.shovel}</p>
+            <CardContent className="p-2 sm:p-4 text-center">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Shovel</p>
+              <p className="text-xl sm:text-3xl font-bold text-info">{summaryStats.shovel}</p>
             </CardContent>
           </Card>
-          <Card className="glass">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground">Salt Services</p>
-              <p className="text-3xl font-bold text-warning">{summaryStats.salt}</p>
+          <Card className="glass hidden sm:block">
+            <CardContent className="p-2 sm:p-4 text-center">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Salt</p>
+              <p className="text-xl sm:text-3xl font-bold text-warning">{summaryStats.salt}</p>
             </CardContent>
           </Card>
-          <Card className="glass">
-            <CardContent className="p-4 text-center">
-              <p className="text-xs text-muted-foreground">Locations</p>
-              <p className="text-3xl font-bold text-success">{summaryStats.locations}</p>
+          <Card className="glass hidden sm:block">
+            <CardContent className="p-2 sm:p-4 text-center">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Locations</p>
+              <p className="text-xl sm:text-3xl font-bold text-success">{summaryStats.locations}</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Work Log Entries */}
         <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Work Log Entries ({allWorkEntries.length})</CardTitle>
-            <Button variant="outline" size="sm">Add Entry</Button>
+          <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4">
+            <CardTitle className="text-sm sm:text-base">Work Log Entries ({allWorkEntries.length})</CardTitle>
+            <Button variant="outline" size="sm" className="text-xs">Add Entry</Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date/Time</TableHead>
-                    <TableHead>Check In</TableHead>
-                    <TableHead>Check Out</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Snow/Salt</TableHead>
-                    <TableHead>Weather</TableHead>
-                    <TableHead>Equipment</TableHead>
-                    <TableHead>Crew</TableHead>
-                    <TableHead>Photo</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="text-xs">Type</TableHead>
+                    <TableHead className="text-xs">Date</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">In</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Out</TableHead>
+                    <TableHead className="text-xs">Dur.</TableHead>
+                    <TableHead className="text-xs">Location</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Service</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Snow/Salt</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Weather</TableHead>
+                    <TableHead className="text-xs hidden xl:table-cell">Equipment</TableHead>
+                    <TableHead className="text-xs hidden xl:table-cell">Crew</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Photo</TableHead>
+                    <TableHead className="text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allWorkEntries.slice(0, 20).map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
-                        <Badge variant={entry.type === 'plow' ? 'default' : 'secondary'}>
-                          {entry.type === 'plow' ? 'Plow' : 'Shovel'}
+                        <Badge variant={entry.type === 'plow' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0.5">
+                          {entry.type === 'plow' ? 'Plow' : 'Shov'}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <div className="text-sm">
-                          {format(new Date(entry.check_in_time), 'MM/dd/yy')}
+                        <div className="text-xs">
+                          {format(new Date(entry.check_in_time), 'MM/dd')}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-[10px] text-muted-foreground sm:hidden">
                           {formatTime(entry.check_in_time)}
                         </div>
                       </TableCell>
-                      <TableCell>{formatTime(entry.check_in_time)}</TableCell>
-                      <TableCell>{formatTime(entry.check_out_time)}</TableCell>
-                      <TableCell>{formatDuration(entry.duration_minutes)}</TableCell>
-                      <TableCell className="max-w-[120px] truncate">
+                      <TableCell className="text-xs hidden lg:table-cell">{formatTime(entry.check_in_time)}</TableCell>
+                      <TableCell className="text-xs hidden lg:table-cell">{formatTime(entry.check_out_time)}</TableCell>
+                      <TableCell className="text-xs">{formatDuration(entry.duration_minutes)}</TableCell>
+                      <TableCell className="max-w-[80px] sm:max-w-[120px] truncate text-xs">
                         {entry.accounts?.name || '-'}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={getServiceBadgeVariant(entry.service_type)}>
-                          {entry.service_type === 'both' ? 'Plowed' : entry.service_type === 'salt' ? 'Salted' : 'Plowed'}
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant={getServiceBadgeVariant(entry.service_type)} className="text-[10px] px-1.5 py-0.5">
+                          {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : 'Plow'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lbs` : '-'}
+                      <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
+                        {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lb` : '-'}
                       </TableCell>
-                      <TableCell className="max-w-[100px]">
+                      <TableCell className="max-w-[80px] hidden lg:table-cell">
                         <div className="text-xs">
                           {entry.temperature ? `${entry.temperature}°F` : '-'}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {entry.weather_description || '-'}
-                        </div>
                       </TableCell>
-                      <TableCell className="max-w-[100px] truncate">
+                      <TableCell className="max-w-[80px] truncate text-xs hidden xl:table-cell">
                         {entry.equipmentName}
                       </TableCell>
-                      <TableCell className="max-w-[100px] truncate">
+                      <TableCell className="max-w-[80px] truncate text-xs hidden xl:table-cell">
                         {entry.crew}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         {entry.photo_url ? (
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Image className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Image className="h-3.5 w-3.5" />
                           </Button>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <FileText className="h-4 w-4" />
+                        <div className="flex items-center gap-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
@@ -687,8 +683,8 @@ const Reports = () => {
                   ))}
                   {allWorkEntries.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
-                        No work log entries found for the selected filters
+                      <TableCell colSpan={13} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                        No entries found
                       </TableCell>
                     </TableRow>
                   )}

@@ -136,4 +136,45 @@
       hsl(222 47% 11%)
     );
   }
+  
+  /* Mobile-first responsive utilities */
+  .mobile-scroll-x {
+    @apply overflow-x-auto -mx-4 px-4;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-card {
+    @apply rounded-lg p-3 sm:p-4;
+  }
+  
+  .mobile-text-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .mobile-hidden {
+    @apply hidden sm:table-cell;
+  }
+  
+  .mobile-stack {
+    @apply flex flex-col gap-2 sm:flex-row sm:items-center;
+  }
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 640px) {
+  .container {
+    @apply px-3;
+  }
+  
+  /* Make tables scroll horizontally on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Compact table cells on mobile */
+  th, td {
+    @apply text-xs px-2 py-2 whitespace-nowrap;
+  }
 }
