@@ -451,6 +451,7 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          is_super_admin: boolean
           notification_preferences: Json | null
           phone: string | null
           updated_at: string
@@ -462,6 +463,7 @@ export type Database = {
           display_name?: string | null
           email: string
           id?: string
+          is_super_admin?: boolean
           notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
@@ -473,6 +475,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          is_super_admin?: boolean
           notification_preferences?: Json | null
           phone?: string | null
           updated_at?: string
@@ -935,6 +938,7 @@ export type Database = {
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "manager" | "driver" | "shovel_crew" | "client"

@@ -33,9 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [employeeCategory, setEmployeeCategory] = useState<'plow' | 'shovel' | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  const SUPER_ADMIN_EMAIL = 'matthewstengel69@gmail.com';
-
-  const fetchUserData = useCallback(async (userId: string, userEmail: string) => {
+  const fetchUserData = useCallback(async (userId: string) => {
     setRolesLoading(true);
     try {
       // Fetch user roles
@@ -60,8 +58,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setEmployeeCategory(employeeData.category as 'plow' | 'shovel');
       }
 
-      // Check if super admin
-      setIsSuperAdmin(userEmail === SUPER_ADMIN_EMAIL);
+      // Check super admin status from database (secure - no hardcoded email)
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      setIsSuperAdmin(profileData?.is_super_admin ?? false);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -78,7 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (session?.user) {
           // Fetch user data directly
-          fetchUserData(session.user.id, session.user.email || '');
+          fetchUserData(session.user.id);
         } else {
           setRoles([]);
           setEmployeeId(null);
@@ -96,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchUserData(session.user.id, session.user.email || '');
+        fetchUserData(session.user.id);
       }
 
       setLoading(false);
