@@ -20,6 +20,7 @@ import {
   MapPin,
   Navigation,
   LogIn,
+  LogOut,
   Truck,
   CheckCircle,
   Camera,
@@ -316,6 +317,76 @@ const Dashboard = () => {
     }
   };
 
+  const handleStartShift = async () => {
+    if (!employeeId) {
+      toast({
+        title: 'Employee not found',
+        description: 'Please contact an administrator to link your account.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('time_clock')
+        .insert({
+          employee_id: employeeId,
+          clock_in_time: new Date().toISOString(),
+          clock_in_latitude: position?.latitude || null,
+          clock_in_longitude: position?.longitude || null,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Shift started!',
+        description: 'You are now clocked in.',
+      });
+    } catch (error) {
+      console.error('Error starting shift:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to start shift. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEndShift = async () => {
+    if (!activeShift) return;
+
+    try {
+      const clockOutTime = new Date();
+      const clockInTime = new Date(activeShift.clock_in_time);
+      const durationMinutes = Math.round((clockOutTime.getTime() - clockInTime.getTime()) / 60000);
+
+      const { error } = await supabase
+        .from('time_clock')
+        .update({
+          clock_out_time: clockOutTime.toISOString(),
+          clock_out_latitude: position?.latitude || null,
+          clock_out_longitude: position?.longitude || null,
+          duration_minutes: durationMinutes,
+        })
+        .eq('id', activeShift.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Shift ended!',
+        description: `Total time: ${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}m`,
+      });
+    } catch (error) {
+      console.error('Error ending shift:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to end shift. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getServiceBadge = (serviceType: string) => {
     if (serviceType === 'plow' || serviceType === 'both') {
       return <Badge className="bg-primary text-primary-foreground text-xs">Plowed</Badge>;
@@ -375,10 +446,23 @@ const Dashboard = () => {
                   </p>
                 </div>
               </div>
-              <Button className="bg-success hover:bg-success/90 text-success-foreground">
-                <LogIn className="h-4 w-4 mr-2" />
-                Start Shift
-              </Button>
+              {activeShift ? (
+                <Button 
+                  onClick={handleEndShift}
+                  variant="destructive"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  End Shift
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleStartShift}
+                  className="bg-success hover:bg-success/90 text-success-foreground"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Start Shift
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
