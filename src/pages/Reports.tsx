@@ -638,7 +638,7 @@ const Reports = () => {
                         {entry.accounts?.name || '-'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={getServiceBadgeVariant(entry.service_type)} className="text-[10px] px-1.5 py-0.5">
+                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type)}`}>
                           {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : entry.service_type === 'shovel' ? 'Shov' : 'Plow'}
                         </Badge>
                       </TableCell>
