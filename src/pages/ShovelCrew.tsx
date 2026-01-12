@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCheckInState } from '@/hooks/useCheckInState';
 import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
+import { Navigation } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,7 +34,7 @@ const ShovelCrewDashboard = () => {
   const { user, employeeId } = useAuth();
   const queryClient = useQueryClient();
   const checkInState = useCheckInState('shovel');
-  const { position } = useGeolocation();
+  const { position, getPosition } = useGeolocation();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -215,6 +216,30 @@ const ShovelCrewDashboard = () => {
     if (b.distance === null) return -1;
     return a.distance - b.distance;
   });
+
+  // Get nearest account
+  const nearestAccount = sortedAccounts.length > 0 && sortedAccounts[0].distance !== null 
+    ? sortedAccounts[0] 
+    : null;
+
+  // Auto-select nearest account when GPS position updates
+  useEffect(() => {
+    if (nearestAccount && !selectedAccount && position) {
+      setSelectedAccount(nearestAccount.id);
+    }
+  }, [nearestAccount, selectedAccount, position]);
+
+  // Form validation - all fields required except notes and photo
+  // Salt Used is optional for "shovel" only, Snow Depth is optional for "salt" only
+  const isFormValid = 
+    selectedAccount &&
+    serviceType &&
+    selectedEmployees.length > 0 &&
+    (serviceType === 'salt' || snowDepth.trim() !== '') &&
+    (serviceType === 'shovel' || saltUsed.trim() !== '') &&
+    temperature.trim() !== '' &&
+    weatherDescription.trim() !== '' &&
+    windSpeed.trim() !== '';
 
   const handleStartShift = async () => {
     if (!employeeId) {
@@ -496,19 +521,48 @@ const ShovelCrewDashboard = () => {
           <div>
             <h2 className="text-lg font-semibold mb-4">Quick Log Entry</h2>
             <div className="space-y-4">
+              {/* Nearest Location Banner */}
+              {nearestAccount && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-shovel/20 border border-shovel/30">
+                  <div className="flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-shovel" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Nearest: {nearestAccount.name}{' '}
+                        <span className="text-muted-foreground">
+                          {nearestAccount.distance !== null ? formatDistance(nearestAccount.distance) : ''}
+                        </span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        GPS accuracy: ±{position?.accuracy ? Math.round(position.accuracy) : '--'} meters
+                      </p>
+                    </div>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => getPosition()}>
+                    <Navigation className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
               {/* Location Selection */}
               <div className="space-y-2">
-                <Label className="text-sm">Select Location</Label>
+                <Label className="text-sm text-muted-foreground">Select Account (verify or change)</Label>
                 <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-                  <SelectTrigger className="h-11">
+                  <SelectTrigger className="bg-card border-border h-11">
                     <SelectValue placeholder="Choose a location..." />
                   </SelectTrigger>
                   <SelectContent>
                     <ScrollArea className="h-64">
                       {sortedAccounts.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                          {account.distance !== null && ` (${formatDistance(account.distance)})`}
+                          <div className="flex items-center justify-between w-full">
+                            <span>{account.name}</span>
+                            {account.distance !== null && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {formatDistance(account.distance)}
+                              </span>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </ScrollArea>
@@ -753,10 +807,16 @@ const ShovelCrewDashboard = () => {
                 onClick={checkInState.isCheckedIn ? handleLogService : handleCheckIn}
                 className={`w-full h-12 text-base ${
                   checkInState.isCheckedIn 
-                    ? 'bg-success hover:bg-success/90' 
+                    ? isFormValid 
+                      ? 'bg-success hover:bg-success/90' 
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
                     : 'bg-destructive/80 hover:bg-destructive'
                 }`}
-                disabled={!checkInState.isCheckedIn && (!selectedAccount || !activeShift)}
+                disabled={
+                  checkInState.isCheckedIn 
+                    ? !isFormValid 
+                    : (!selectedAccount || !activeShift)
+                }
               >
                 {checkInState.isCheckedIn ? (
                   <>
@@ -767,6 +827,11 @@ const ShovelCrewDashboard = () => {
                   'Check In First'
                 )}
               </Button>
+              {checkInState.isCheckedIn && !isFormValid && (
+                <p className="text-xs text-center text-destructive">
+                  Please fill in all required fields (Team Members, Snow Depth, Salt Used, Weather info)
+                </p>
+              )}
             </div>
           </div>
 
