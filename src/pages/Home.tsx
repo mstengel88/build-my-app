@@ -51,12 +51,8 @@ const Home = () => {
             variant: 'destructive',
           });
         } else {
-          // Navigation will be handled by AuthProvider based on role
-          if (loginType === 'client') {
-            navigate('/client-portal');
-          } else {
-            navigate('/dashboard');
-          }
+          // Navigate to redirect page which handles role-based routing
+          navigate('/redirect');
         }
       }
     } finally {
