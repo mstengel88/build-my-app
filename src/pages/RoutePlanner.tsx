@@ -49,12 +49,12 @@ const RoutePlanner = () => {
   const [isRouteActive, setIsRouteActive] = useState(false);
   const [completedStops, setCompletedStops] = useState<Set<string>>(new Set());
 
-  // Fetch accounts
+  // Fetch accounts using secure view (masks contact info for non-admin/manager roles)
   const { data: accounts = [], isLoading: accountsLoading } = useQuery({
     queryKey: ['routeAccounts'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('accounts')
+        .from('accounts_secure')
         .select('*')
         .eq('status', 'active');
       
