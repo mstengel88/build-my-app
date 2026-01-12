@@ -17,6 +17,7 @@ import Employees from "./pages/Employees";
 import TimeClock from "./pages/TimeClock";
 import WorkLogs from "./pages/WorkLogs";
 import Reports from "./pages/Reports";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -117,6 +118,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager']}>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Admin />
                 </ProtectedRoute>
               }
             />
