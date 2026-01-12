@@ -431,7 +431,11 @@ const ClientPortal = () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Service Type</Label>
-                  <Badge className="capitalize mt-1">{account.service_type}</Badge>
+                  <Badge className={`capitalize mt-1 ${
+                    account.service_type === 'salt' 
+                      ? 'bg-success text-success-foreground' 
+                      : 'bg-primary text-primary-foreground'
+                  }`}>{account.service_type}</Badge>
                 </div>
               </CardContent>
             </Card>

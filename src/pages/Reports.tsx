@@ -282,12 +282,13 @@ const Reports = () => {
     return format(new Date(dateString), 'HH:mm');
   };
 
-  const getServiceBadgeVariant = (serviceType: string) => {
+  const getServiceBadgeClass = (serviceType: string) => {
     switch (serviceType) {
-      case 'plow': return 'default';
-      case 'salt': return 'secondary';
-      case 'both': return 'default';
-      default: return 'outline';
+      case 'salt': return 'bg-success text-success-foreground';
+      case 'plow': 
+      case 'both':
+      case 'shovel':
+      default: return 'bg-primary text-primary-foreground';
     }
   };
 
