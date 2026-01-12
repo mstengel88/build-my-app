@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Clock,
   Play,
@@ -582,21 +583,52 @@ const ShovelCrewDashboard = () => {
                 </div>
               </div>
 
-              {/* Employees */}
+              {/* Team Members */}
               <div className="space-y-2">
-                <Label className="text-sm">Employees</Label>
-                <Select>
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select employees..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Team Members
+                </Label>
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <ScrollArea className="max-h-32">
+                    <div className="space-y-2">
+                      {employees.map((emp) => {
+                        const isSelected = selectedEmployees.includes(emp.id);
+                        return (
+                          <label
+                            key={emp.id}
+                            className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                              isSelected ? 'bg-shovel/20 border border-shovel/30' : 'hover:bg-muted/50'
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedEmployees([...selectedEmployees, emp.id]);
+                                } else {
+                                  setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
+                                }
+                              }}
+                              className="data-[state=checked]:bg-shovel data-[state=checked]:border-shovel"
+                            />
+                            <span className="text-sm">{emp.name}</span>
+                          </label>
+                        );
+                      })}
+                      {employees.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-2">
+                          No shovel crew employees found
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+                {selectedEmployees.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedEmployees.length} team member{selectedEmployees.length > 1 ? 's' : ''} selected
+                  </p>
+                )}
               </div>
 
               {/* Snow Depth & Salt */}
