@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCheckInState } from '@/hooks/useCheckInState';
 import { useGeolocation, calculateDistance, formatDistance } from '@/hooks/useGeolocation';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Clock,
   Play,
@@ -23,18 +24,23 @@ import {
   LogOut,
   Truck,
   CheckCircle,
+  CheckCircle2,
   Camera,
-  Image,
+  Image as ImageIcon,
+  Users,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { AccountWithDistance } from '@/lib/supabase-types';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const { user, employeeId } = useAuth();
+  const queryClient = useQueryClient();
   const checkInState = useCheckInState('plow');
   const { position, loading: gpsLoading, getPosition } = useGeolocation();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
   const [shiftElapsedTime, setShiftElapsedTime] = useState('0:00:00');
@@ -47,9 +53,11 @@ const Dashboard = () => {
   const [windSpeed, setWindSpeed] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState<string>('');
-  const [selectedEmployees, setSelectedEmployees] = useState<string>('');
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [currentTemp, setCurrentTemp] = useState<number | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   // Update elapsed time every second when checked in to a job
   useEffect(() => {
@@ -322,6 +330,16 @@ const Dashboard = () => {
     }
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setPhotoPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleLogService = async () => {
     if (!checkInState.isCheckedIn || !checkInState.accountId) {
       return;
@@ -331,6 +349,18 @@ const Dashboard = () => {
       const checkOutTime = new Date();
       const checkInTime = new Date(checkInState.checkInTime!);
       const durationMinutes = Math.round((checkOutTime.getTime() - checkInTime.getTime()) / 60000);
+
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        const fileName = `plow/${Date.now()}-${photoFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('work-photos')
+          .upload(fileName, photoFile);
+        
+        if (!uploadError) {
+          photoUrl = fileName;
+        }
+      }
 
       const { data: workLog, error: workLogError } = await supabase
         .from('work_logs')
@@ -345,6 +375,7 @@ const Dashboard = () => {
           temperature: temperature ? parseFloat(temperature) : null,
           weather_description: weatherDescription || null,
           wind_speed: windSpeed || null,
+          photo_url: photoUrl,
           notes: notes || null,
           created_by: user?.id,
         })
@@ -353,14 +384,17 @@ const Dashboard = () => {
 
       if (workLogError) throw workLogError;
 
-      // Link current employee to work log
-      if (employeeId && workLog) {
-        await supabase
-          .from('work_log_employees')
-          .insert({
-            work_log_id: workLog.id,
-            employee_id: employeeId,
-          });
+      // Link employees to work log
+      if (workLog) {
+        const employeesToLink = selectedEmployees.length > 0 ? selectedEmployees : (employeeId ? [employeeId] : []);
+        for (const empId of employeesToLink) {
+          await supabase
+            .from('work_log_employees')
+            .insert({
+              work_log_id: workLog.id,
+              employee_id: empId,
+            });
+        }
       }
 
       // Link selected equipment to work log
@@ -378,7 +412,9 @@ const Dashboard = () => {
         description: `Service completed in ${durationMinutes} minutes.`,
       });
 
-      // Reset form
+      // Reset form and invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['todayStats'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       checkInState.checkOut();
       setSelectedAccount('');
       setServiceType('plow');
@@ -389,7 +425,9 @@ const Dashboard = () => {
       setWindSpeed('');
       setNotes('');
       setSelectedEquipment('');
-      setSelectedEmployees('');
+      setSelectedEmployees([]);
+      setPhotoFile(null);
+      setPhotoPreview(null);
     } catch (error) {
       console.error('Error logging service:', error);
       toast({
@@ -676,21 +714,35 @@ const Dashboard = () => {
               </Select>
             </div>
 
-            {/* Check In Button */}
-            <Button
-              onClick={handleCheckIn}
-              variant="outline"
-              className="w-full h-12 border-border bg-card"
-              disabled={!selectedAccount || !activeShift}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Check In & Start Timer
-            </Button>
-
-            {!activeShift && (
-              <p className="text-sm text-warning text-center">
-                Start your daily shift first via Time Clock
-              </p>
+            {/* Check In Button / Timer Display */}
+            {!checkInState.isCheckedIn ? (
+              <>
+                <Button
+                  onClick={handleCheckIn}
+                  className="w-full h-12 bg-muted/50 hover:bg-muted text-muted-foreground"
+                  disabled={!selectedAccount || !activeShift}
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Check In & Start Timer
+                </Button>
+                {!activeShift && (
+                  <p className="text-center text-sm">
+                    <span className="text-warning">Start your </span>
+                    <Link to="/time-clock" className="text-primary hover:underline">daily shift</Link>
+                    <span className="text-warning"> first via Time Clock</span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Timer running at</p>
+                    <p className="font-medium">{checkInState.accountName}</p>
+                  </div>
+                  <p className="text-2xl font-mono font-bold text-primary">{elapsedTime}</p>
+                </div>
+              </div>
             )}
 
             {/* Service Type */}
@@ -727,34 +779,67 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Equipment & Employees */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Equipment</Label>
-                <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-                  <SelectTrigger className="bg-card border-border">
-                    <SelectValue placeholder="Select equipment..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {equipment.map((eq) => (
-                      <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Equipment */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground">Equipment</Label>
+              <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
+                <SelectTrigger className="bg-card border-border h-11">
+                  <SelectValue placeholder="Select equipment..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipment.map((eq) => (
+                    <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Team Members */}
+            <div className="space-y-2">
+              <Label className="text-sm flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Team Members
+              </Label>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <ScrollArea className="max-h-32">
+                  <div className="space-y-2">
+                    {employees.map((emp) => {
+                      const isSelected = selectedEmployees.includes(emp.id);
+                      return (
+                        <label
+                          key={emp.id}
+                          className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                            isSelected ? 'bg-primary/20 border border-primary/30' : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedEmployees([...selectedEmployees, emp.id]);
+                              } else {
+                                setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
+                              }
+                            }}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                          <span className="text-sm">{emp.name}</span>
+                        </label>
+                      );
+                    })}
+                    {employees.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No plow crew employees found
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Employees</Label>
-                <Select value={selectedEmployees} onValueChange={setSelectedEmployees}>
-                  <SelectTrigger className="bg-card border-border">
-                    <SelectValue placeholder="Select employees..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {selectedEmployees.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedEmployees.length} team member{selectedEmployees.length > 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             {/* Snow Depth & Salt Used */}
@@ -832,25 +917,65 @@ const Dashboard = () => {
             {/* Photo Upload */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground">Photo (Optional)</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" className="h-12 bg-card border-border border-dashed">
-                  <Image className="h-4 w-4 mr-2" />
-                  Choose from gallery
-                </Button>
-                <Button variant="outline" className="h-12 bg-card border-border border-dashed">
-                  <Camera className="h-4 w-4 mr-2" />
-                  Take photo
-                </Button>
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+              {photoPreview ? (
+                <div className="relative">
+                  <img src={photoPreview} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-11 bg-muted/30"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Choose from gallery
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 bg-muted/30"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Take photo
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
             <Button
               onClick={checkInState.isCheckedIn ? handleLogService : handleCheckIn}
-              className="w-full h-14 text-lg bg-success hover:bg-success/90 text-success-foreground"
-              disabled={!selectedAccount}
+              className={`w-full h-12 text-base ${
+                checkInState.isCheckedIn 
+                  ? 'bg-success hover:bg-success/90' 
+                  : 'bg-destructive/80 hover:bg-destructive'
+              }`}
+              disabled={!checkInState.isCheckedIn && (!selectedAccount || !activeShift)}
             >
-              {checkInState.isCheckedIn ? 'Log Service' : 'Check In First'}
+              {checkInState.isCheckedIn ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                  Log Service & Check Out
+                </>
+              ) : (
+                'Check In First'
+              )}
             </Button>
           </div>
 
