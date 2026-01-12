@@ -18,10 +18,11 @@ export const ProtectedRoute = ({
   requireAdmin = false,
   requireSuperAdmin = false,
 }: ProtectedRouteProps) => {
-  const { user, loading, roles, isStaff, isAdminOrManager, isSuperAdmin } = useAuth();
+  const { user, loading, rolesLoading, roles, isStaff, isAdminOrManager, isSuperAdmin } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Wait for both auth and roles to load
+  if (loading || rolesLoading) {
     return (
       <div className="min-h-screen bg-gradient-dark flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

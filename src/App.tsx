@@ -27,9 +27,9 @@ const queryClient = new QueryClient();
 
 // Component to handle role-based redirect after login
 const RoleBasedRedirect = () => {
-  const { loading, roles, employeeCategory, isStaff } = useAuth();
+  const { loading, rolesLoading, employeeCategory, isStaff } = useAuth();
 
-  if (loading) return null;
+  if (loading || rolesLoading) return null;
 
   // Clients go to client portal
   if (!isStaff()) {

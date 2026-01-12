@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  rolesLoading: boolean;
   roles: AppRole[];
   employeeId: string | null;
   employeeCategory: 'plow' | 'shovel' | null;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [employeeCategory, setEmployeeCategory] = useState<'plow' | 'shovel' | null>(null);
@@ -34,6 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const SUPER_ADMIN_EMAIL = 'matthewstengel69@gmail.com';
 
   const fetchUserData = useCallback(async (userId: string, userEmail: string) => {
+    setRolesLoading(true);
     try {
       // Fetch user roles
       const { data: rolesData } = await supabase
@@ -61,6 +64,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsSuperAdmin(userEmail === SUPER_ADMIN_EMAIL);
     } catch (error) {
       console.error('Error fetching user data:', error);
+    } finally {
+      setRolesLoading(false);
     }
   }, []);
 
@@ -72,10 +77,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Use setTimeout to avoid potential deadlocks
-          setTimeout(() => {
-            fetchUserData(session.user.id, session.user.email || '');
-          }, 0);
+          // Fetch user data directly
+          fetchUserData(session.user.id, session.user.email || '');
         } else {
           setRoles([]);
           setEmployeeId(null);
@@ -151,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         session,
         loading,
+        rolesLoading,
         roles,
         employeeId,
         employeeCategory,
