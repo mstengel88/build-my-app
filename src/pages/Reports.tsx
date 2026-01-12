@@ -577,7 +577,7 @@ const Reports = () => {
           <Card className="glass">
             <CardContent className="p-2 sm:p-4 text-center">
               <p className="text-[10px] sm:text-xs text-muted-foreground">Shovel</p>
-              <p className="text-xl sm:text-3xl font-bold text-info">{summaryStats.shovel}</p>
+              <p className="text-xl sm:text-3xl font-bold text-shovel">{summaryStats.shovel}</p>
             </CardContent>
           </Card>
           <Card className="glass hidden sm:block">
