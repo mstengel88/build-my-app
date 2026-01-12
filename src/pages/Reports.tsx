@@ -606,16 +606,16 @@ const Reports = () => {
                   <TableRow>
                     <TableHead className="text-xs">Type</TableHead>
                     <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs hidden lg:table-cell">In</TableHead>
-                    <TableHead className="text-xs hidden lg:table-cell">Out</TableHead>
-                    <TableHead className="text-xs">Dur.</TableHead>
+                    <TableHead className="text-xs">In</TableHead>
+                    <TableHead className="text-xs">Out</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Dur.</TableHead>
                     <TableHead className="text-xs">Location</TableHead>
                     <TableHead className="text-xs hidden sm:table-cell">Service</TableHead>
                     <TableHead className="text-xs hidden md:table-cell">Snow/Salt</TableHead>
-                    <TableHead className="text-xs hidden lg:table-cell">Weather</TableHead>
-                    <TableHead className="text-xs hidden xl:table-cell">Equipment</TableHead>
-                    <TableHead className="text-xs hidden xl:table-cell">Crew</TableHead>
-                    <TableHead className="text-xs hidden md:table-cell">Photo</TableHead>
+                    <TableHead className="text-xs">Weather</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Equipment</TableHead>
+                    <TableHead className="text-xs">Crew</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Photo</TableHead>
                     <TableHead className="text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -627,40 +627,38 @@ const Reports = () => {
                           {entry.type === 'plow' ? 'Plow' : 'Shov'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="text-xs">
-                          {format(new Date(entry.check_in_time), 'MM/dd')}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground sm:hidden">
-                          {formatTime(entry.check_in_time)}
-                        </div>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {format(new Date(entry.check_in_time), 'MM/dd')}
                       </TableCell>
-                      <TableCell className="text-xs hidden lg:table-cell">{formatTime(entry.check_in_time)}</TableCell>
-                      <TableCell className="text-xs hidden lg:table-cell">{formatTime(entry.check_out_time)}</TableCell>
-                      <TableCell className="text-xs">{formatDuration(entry.duration_minutes)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_in_time)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_out_time)}</TableCell>
+                      <TableCell className="text-xs hidden sm:table-cell">{formatDuration(entry.duration_minutes)}</TableCell>
                       <TableCell className="max-w-[80px] sm:max-w-[120px] truncate text-xs">
                         {entry.accounts?.name || '-'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant={getServiceBadgeVariant(entry.service_type)} className="text-[10px] px-1.5 py-0.5">
-                          {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : 'Plow'}
+                          {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : entry.service_type === 'shovel' ? 'Shov' : 'Plow'}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
                         {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lb` : '-'}
                       </TableCell>
-                      <TableCell className="max-w-[80px] hidden lg:table-cell">
-                        <div className="text-xs">
-                          {entry.temperature ? `${entry.temperature}°F` : '-'}
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col">
+                          <span>{entry.temperature ? `${entry.temperature}°F` : '-'}</span>
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
+                            {entry.weather_description || ''}
+                          </span>
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[80px] truncate text-xs hidden xl:table-cell">
+                      <TableCell className="max-w-[80px] truncate text-xs hidden lg:table-cell">
                         {entry.equipmentName}
                       </TableCell>
-                      <TableCell className="max-w-[80px] truncate text-xs hidden xl:table-cell">
+                      <TableCell className="max-w-[100px] truncate text-xs">
                         {entry.crew}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="hidden lg:table-cell">
                         {entry.photo_url ? (
                           <Button variant="ghost" size="icon" className="h-7 w-7">
                             <Image className="h-3.5 w-3.5" />
