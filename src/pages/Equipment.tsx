@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DataTable, StatusBadge, Column } from '@/components/management/DataTable';
+import { CSVImport } from '@/components/management/CSVImport';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Truck, Wrench, Calendar } from 'lucide-react';
+import { Truck, Wrench, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { EquipmentType, EquipmentCategory, EquipmentStatus, EquipmentServiceCapability } from '@/lib/supabase-types';
@@ -202,6 +203,26 @@ const Equipment = () => {
     saveMutation.mutate(formData);
   };
 
+  const handleCSVImport = async (data: Record<string, any>[]) => {
+    const { error } = await supabase.from('equipment').insert(data as any);
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['equipment'] });
+  };
+
+  const csvColumns = [
+    { key: 'name', label: 'Name', required: true },
+    { key: 'type', label: 'Type', required: true },
+    { key: 'make', label: 'Make' },
+    { key: 'model', label: 'Model' },
+    { key: 'year', label: 'Year' },
+    { key: 'vin', label: 'VIN' },
+    { key: 'license_plate', label: 'License Plate' },
+    { key: 'category', label: 'Category' },
+    { key: 'service_capability', label: 'Service Capability' },
+    { key: 'status', label: 'Status' },
+    { key: 'notes', label: 'Notes' },
+  ];
+
   const columns: Column<Equipment>[] = [
     {
       key: 'name',
@@ -286,9 +307,22 @@ const Equipment = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Equipment</h1>
-          <p className="text-muted-foreground">Manage vehicles and equipment inventory</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Equipment</h1>
+            <p className="text-muted-foreground">Manage vehicles and equipment inventory</p>
+          </div>
+          <CSVImport
+            tableName="Equipment"
+            columns={csvColumns}
+            onImport={handleCSVImport}
+            trigger={
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+            }
+          />
         </div>
 
         {/* Stats */}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DataTable, StatusBadge, Column } from '@/components/management/DataTable';
+import { CSVImport } from '@/components/management/CSVImport';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Phone, Shovel, Truck } from 'lucide-react';
+import { Users, Mail, Phone, Shovel, Truck, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { EmployeeRole, EmployeeCategory, EmployeeStatus } from '@/lib/supabase-types';
@@ -189,6 +190,22 @@ const Employees = () => {
     saveMutation.mutate(formData);
   };
 
+  const handleCSVImport = async (data: Record<string, any>[]) => {
+    const { error } = await supabase.from('employees').insert(data as any);
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['employees'] });
+  };
+
+  const csvColumns = [
+    { key: 'name', label: 'Name', required: true },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'role', label: 'Role' },
+    { key: 'category', label: 'Category' },
+    { key: 'status', label: 'Status' },
+    { key: 'hire_date', label: 'Hire Date' },
+  ];
+
   const columns: Column<Employee>[] = [
     {
       key: 'name',
@@ -279,9 +296,22 @@ const Employees = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Employees</h1>
-          <p className="text-muted-foreground">Manage staff and crew members</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Employees</h1>
+            <p className="text-muted-foreground">Manage staff and crew members</p>
+          </div>
+          <CSVImport
+            tableName="Employees"
+            columns={csvColumns}
+            onImport={handleCSVImport}
+            trigger={
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+            }
+          />
         </div>
 
         {/* Stats */}
