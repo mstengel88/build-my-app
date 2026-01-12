@@ -30,9 +30,12 @@ import {
   Trash2,
   FileText,
   Image,
+  Plus,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
+import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
 
 type DateRange = {
   from: Date;
@@ -80,6 +83,10 @@ const Reports = () => {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  
+  // Dialog states
+  const [showAddEntryDialog, setShowAddEntryDialog] = useState(false);
+  const [showAddShiftDialog, setShowAddShiftDialog] = useState(false);
   
   // Filter states
   const [logType, setLogType] = useState<string>('all');
@@ -500,7 +507,12 @@ const Reports = () => {
               <Clock className="h-4 w-4" />
               Daily Shifts ({timeClockEntries?.length || 0} shifts)
             </CardTitle>
-            <Button variant="outline" size="sm" className="text-xs">Add Shift</Button>
+            {isAdminOrManager && (
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddShiftDialog(true)}>
+                <Plus className="h-3 w-3" />
+                Add Shift
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
@@ -599,7 +611,12 @@ const Reports = () => {
         <Card className="glass">
           <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4">
             <CardTitle className="text-sm sm:text-base">Work Log Entries ({allWorkEntries.length})</CardTitle>
-            <Button variant="outline" size="sm" className="text-xs">Add Entry</Button>
+            {isAdminOrManager && (
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddEntryDialog(true)}>
+                <Plus className="h-3 w-3" />
+                Add Entry
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
@@ -694,6 +711,10 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <AddWorkEntryDialog open={showAddEntryDialog} onOpenChange={setShowAddEntryDialog} />
+      <AddShiftDialog open={showAddShiftDialog} onOpenChange={setShowAddShiftDialog} />
     </AppLayout>
   );
 };
