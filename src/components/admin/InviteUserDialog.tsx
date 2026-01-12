@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { UserPlus, Loader2 } from 'lucide-react';
+import { UserPlus, Loader2, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AppRole } from '@/lib/supabase-types';
@@ -52,61 +52,34 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
     setIsSubmitting(true);
     
     try {
-      // Generate a temporary password - user will need to reset it
-      const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
+      // Get the current session for auth
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Create the user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: tempPassword,
-        options: {
-          data: {
-            display_name: displayName || email.split('@')[0],
-          },
+      if (!session) {
+        throw new Error('You must be logged in to invite users');
+      }
+
+      // Call the edge function to send the invite email
+      const response = await supabase.functions.invoke('send-invite-email', {
+        body: {
+          email,
+          displayName: displayName || undefined,
+          role,
+          createEmployee: createEmployee && role !== 'client',
         },
       });
 
-      if (authError) throw authError;
-      
-      if (!authData.user) {
-        throw new Error('Failed to create user');
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to send invitation');
       }
 
-      // Wait a moment for the trigger to create the profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Assign role to the new user
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: authData.user.id, role });
-
-      if (roleError) throw roleError;
-
-      // Create employee record if requested and role is staff-type
-      if (createEmployee && role !== 'client') {
-        const category = role === 'shovel_crew' ? 'shovel' : 'plow';
-        const employeeRole = role === 'admin' ? 'admin' : role === 'manager' ? 'manager' : 'driver';
-        
-        const { error: employeeError } = await supabase
-          .from('employees')
-          .insert({
-            name: displayName || email.split('@')[0],
-            email,
-            user_id: authData.user.id,
-            category,
-            role: employeeRole,
-            status: 'active',
-          });
-
-        if (employeeError) {
-          console.error('Employee creation error:', employeeError);
-          // Don't throw - user was created successfully
-        }
+      if (response.data?.error) {
+        throw new Error(response.data.error);
       }
 
       toast({
-        title: 'User invited successfully',
-        description: `An account has been created for ${email}. They will receive an email to set their password.`,
+        title: 'Invitation sent!',
+        description: `An invite email has been sent to ${email}. They can click the link to set up their account.`,
       });
 
       // Reset form
@@ -220,12 +193,12 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  Sending...
                 </>
               ) : (
                 <>
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Invite User
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Invite
                 </>
               )}
             </Button>
