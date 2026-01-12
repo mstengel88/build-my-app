@@ -192,7 +192,7 @@ const Employees = () => {
 
   const handleCSVImport = async (data: Record<string, any>[]) => {
     const { error } = await supabase.from('employees').insert(data as any);
-    if (error) throw error;
+    if (error) throw new Error(error.message || error.details || 'Failed to import employees');
     queryClient.invalidateQueries({ queryKey: ['employees'] });
   };
 

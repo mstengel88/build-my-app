@@ -164,10 +164,12 @@ export const CSVImport = ({ tableName, columns, onImport, trigger }: CSVImportPr
         description: `Imported ${data.length} records`,
       });
       handleReset();
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.details || error?.hint || 
+        (typeof error === 'object' ? JSON.stringify(error) : String(error));
       toast({
         title: 'Import failed',
-        description: String(error),
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
