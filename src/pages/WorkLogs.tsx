@@ -271,11 +271,13 @@ const WorkLogs = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground">{log.accounts?.name}</span>
                       <Badge className={`text-xs ${
-                        log.service_type === 'salt' 
-                          ? 'bg-success text-success-foreground' 
-                          : 'bg-primary text-primary-foreground'
+                        type === 'shovel'
+                          ? 'bg-shovel text-shovel-foreground'
+                          : log.service_type === 'salt' 
+                            ? 'bg-success text-success-foreground' 
+                            : 'bg-primary text-primary-foreground'
                       }`}>
-                        {log.service_type === 'both' ? 'Plow & Salt' : log.service_type === 'plow' ? 'Plowed' : log.service_type === 'shovel' ? 'Shoveled' : 'Salted'}
+                        {type === 'shovel' ? 'Shoveled' : log.service_type === 'both' ? 'Plow & Salt' : log.service_type === 'plow' ? 'Plowed' : 'Salted'}
                       </Badge>
                       {log.duration_minutes ? (
                         <span className="text-xs font-mono text-muted-foreground">
