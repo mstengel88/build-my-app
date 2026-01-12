@@ -77,6 +77,16 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
         throw new Error(response.data.error);
       }
 
+      // If the email provider rejected the send, still show the generated link so the admin can share it manually
+      if (response.data?.emailSent === false && response.data?.inviteLink) {
+        toast({
+          title: 'Invite link generated (email not sent)',
+          description: `Copy and send this link manually: ${response.data.inviteLink}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       toast({
         title: 'Invitation sent!',
         description: `An invite email has been sent to ${email}. They can click the link to set up their account.`,
@@ -91,7 +101,7 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
       
       // Refresh the users list
       queryClient.invalidateQueries({ queryKey: ['usersWithRoles'] });
-      
+
     } catch (error: any) {
       console.error('Invite user error:', error);
       toast({
