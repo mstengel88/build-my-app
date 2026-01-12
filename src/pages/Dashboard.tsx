@@ -37,6 +37,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
+  const [shiftElapsedTime, setShiftElapsedTime] = useState('0:00:00');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [serviceType, setServiceType] = useState<'plow' | 'salt' | 'both'>('plow');
   const [snowDepth, setSnowDepth] = useState('');
@@ -47,8 +48,10 @@ const Dashboard = () => {
   const [notes, setNotes] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState<string>('');
   const [selectedEmployees, setSelectedEmployees] = useState<string>('');
+  const [currentTemp, setCurrentTemp] = useState<number | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
-  // Update elapsed time every second when checked in
+  // Update elapsed time every second when checked in to a job
   useEffect(() => {
     if (checkInState.isCheckedIn) {
       const interval = setInterval(() => {
@@ -57,6 +60,51 @@ const Dashboard = () => {
       return () => clearInterval(interval);
     }
   }, [checkInState.isCheckedIn, checkInState.formatElapsedTime]);
+
+
+  // Fetch weather data when position changes
+  useEffect(() => {
+    const fetchWeather = async () => {
+      if (!position) return;
+      
+      setWeatherLoading(true);
+      try {
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${position.latitude}&longitude=${position.longitude}&current=temperature_2m,weather_code,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph`
+        );
+        
+        if (!response.ok) throw new Error('Weather fetch failed');
+        
+        const data = await response.json();
+        const current = data.current;
+        
+        setCurrentTemp(Math.round(current.temperature_2m));
+        setTemperature(Math.round(current.temperature_2m).toString());
+        setWindSpeed(Math.round(current.wind_speed_10m).toString());
+        
+        const weatherCode = current.weather_code;
+        const weatherDescriptions: Record<number, string> = {
+          0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+          45: 'Foggy', 48: 'Freezing Fog',
+          51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+          56: 'Freezing Drizzle', 57: 'Heavy Freezing Drizzle',
+          61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+          66: 'Freezing Rain', 67: 'Heavy Freezing Rain',
+          71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
+          80: 'Light Showers', 81: 'Showers', 82: 'Heavy Showers',
+          85: 'Light Snow Showers', 86: 'Heavy Snow Showers',
+          95: 'Thunderstorm', 96: 'Thunderstorm with Hail', 99: 'Heavy Thunderstorm',
+        };
+        setWeatherDescription(weatherDescriptions[weatherCode] || 'Unknown');
+      } catch (error) {
+        console.error('Error fetching weather:', error);
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+    
+    fetchWeather();
+  }, [position]);
 
   // Fetch accounts
   const { data: accounts = [] } = useQuery({
@@ -145,6 +193,31 @@ const Dashboard = () => {
     enabled: !!employeeId,
     refetchInterval: 5000,
   });
+
+  // Update shift elapsed time every second when shift is active
+  useEffect(() => {
+    if (activeShift) {
+      const updateShiftTime = () => {
+        const start = new Date(activeShift.clock_in_time).getTime();
+        const now = Date.now();
+        const diff = now - start;
+        
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        
+        setShiftElapsedTime(
+          `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      };
+      
+      updateShiftTime();
+      const interval = setInterval(updateShiftTime, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setShiftElapsedTime('0:00:00');
+    }
+  }, [activeShift]);
 
   // Fetch recent activity
   const { data: recentActivity = [] } = useQuery({
@@ -415,7 +488,9 @@ const Dashboard = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">Snow Tracker</h1>
-                <span className="text-muted-foreground">28°F</span>
+                <span className="text-muted-foreground">
+                  {currentTemp !== null ? `${currentTemp}°F` : weatherLoading ? '...' : '--°F'}
+                </span>
               </div>
               <p className="text-muted-foreground text-sm">
                 Welcome back, {userName}! Track your plowing and salting services.
@@ -440,7 +515,12 @@ const Dashboard = () => {
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Daily Shift</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground">Daily Shift</h3>
+                    {activeShift && (
+                      <span className="text-lg font-mono font-bold text-success">{shiftElapsedTime}</span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {activeShift ? `Started at ${format(new Date(activeShift.clock_in_time), 'h:mm a')}` : 'Shift not started'}
                   </p>
