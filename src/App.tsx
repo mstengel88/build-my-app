@@ -15,6 +15,7 @@ import Accounts from "./pages/Accounts";
 import Equipment from "./pages/Equipment";
 import Employees from "./pages/Employees";
 import TimeClock from "./pages/TimeClock";
+import WorkLogs from "./pages/WorkLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +100,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireStaff>
                   <TimeClock />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/work-logs"
+              element={
+                <ProtectedRoute requireStaff>
+                  <WorkLogs />
                 </ProtectedRoute>
               }
             />
