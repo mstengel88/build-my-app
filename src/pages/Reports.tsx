@@ -1,54 +1,77 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  Legend,
-  AreaChart,
-  Area,
-} from 'recharts';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Calendar as CalendarIcon,
   Download,
-  TrendingUp,
-  Snowflake,
+  Printer,
+  Filter,
   Clock,
-  Users,
-  Truck,
   MapPin,
-  ThermometerSnowflake,
-  Activity,
-  BarChart3,
+  Pencil,
+  Trash2,
+  FileText,
+  Image,
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-
-const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--info))', 'hsl(var(--warning))', 'hsl(var(--success))', 'hsl(var(--destructive))'];
 
 type DateRange = {
   from: Date;
   to: Date;
+};
+
+type WorkLogWithDetails = {
+  id: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  duration_minutes: number | null;
+  service_type: string;
+  snow_depth: number | null;
+  salt_used: number | null;
+  temperature: number | null;
+  weather_description: string | null;
+  wind_speed: string | null;
+  photo_url: string | null;
+  notes: string | null;
+  accounts: { name: string } | null;
+  work_log_employees: { employees: { name: string } | null }[];
+  work_log_equipment: { equipment: { name: string } | null }[];
+};
+
+type ShovelLogWithDetails = {
+  id: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  duration_minutes: number | null;
+  service_type: string;
+  snow_depth: number | null;
+  salt_used: number | null;
+  temperature: number | null;
+  weather_description: string | null;
+  wind_speed: string | null;
+  photo_url: string | null;
+  notes: string | null;
+  accounts: { name: string } | null;
+  shovel_work_log_employees: { employees: { name: string } | null }[];
 };
 
 const Reports = () => {
@@ -57,605 +80,623 @@ const Reports = () => {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('this-month');
+  
+  // Filter states
+  const [logType, setLogType] = useState<string>('all');
+  const [selectedAccount, setSelectedAccount] = useState<string>('all');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
+  const [selectedServiceType, setSelectedServiceType] = useState<string>('all');
+  const [selectedEquipment, setSelectedEquipment] = useState<string>('all');
+  const [minSnowDepth, setMinSnowDepth] = useState<string>('');
+  const [minSaltUsed, setMinSaltUsed] = useState<string>('');
 
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    const now = new Date();
-    switch (period) {
-      case 'this-week':
-        setDateRange({ from: startOfWeek(now), to: endOfWeek(now) });
-        break;
-      case 'last-week':
-        setDateRange({ from: startOfWeek(subWeeks(now, 1)), to: endOfWeek(subWeeks(now, 1)) });
-        break;
-      case 'this-month':
-        setDateRange({ from: startOfMonth(now), to: endOfMonth(now) });
-        break;
-      case 'last-month':
-        setDateRange({ from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) });
-        break;
-      case 'last-3-months':
-        setDateRange({ from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) });
-        break;
-    }
-  };
+  // Fetch accounts for filter
+  const { data: accounts } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('accounts').select('id, name').order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  // Fetch work logs summary
-  const { data: workLogsSummary } = useQuery({
-    queryKey: ['workLogsSummary', dateRange],
+  // Fetch employees for filter
+  const { data: employees } = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('employees').select('id, name').order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch equipment for filter
+  const { data: equipment } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('equipment').select('id, name').order('name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch work logs with details
+  const { data: workLogs } = useQuery({
+    queryKey: ['workLogsReport', dateRange],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('work_logs')
-        .select('*, accounts(name)')
+        .select(`
+          *,
+          accounts(name),
+          work_log_employees(employees(name)),
+          work_log_equipment(equipment(name))
+        `)
         .gte('check_in_time', dateRange.from.toISOString())
-        .lte('check_in_time', dateRange.to.toISOString());
+        .lte('check_in_time', dateRange.to.toISOString())
+        .order('check_in_time', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as WorkLogWithDetails[];
     },
   });
 
-  // Fetch shovel logs summary
-  const { data: shovelLogsSummary } = useQuery({
-    queryKey: ['shovelLogsSummary', dateRange],
+  // Fetch shovel logs with details
+  const { data: shovelLogs } = useQuery({
+    queryKey: ['shovelLogsReport', dateRange],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shovel_work_logs')
-        .select('*, accounts(name)')
+        .select(`
+          *,
+          accounts(name),
+          shovel_work_log_employees(employees(name))
+        `)
         .gte('check_in_time', dateRange.from.toISOString())
-        .lte('check_in_time', dateRange.to.toISOString());
+        .lte('check_in_time', dateRange.to.toISOString())
+        .order('check_in_time', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as ShovelLogWithDetails[];
     },
   });
 
-  // Fetch employee stats
-  const { data: employeeStats } = useQuery({
-    queryKey: ['employeeStats', dateRange],
-    queryFn: async () => {
-      const { data: timeClock, error } = await supabase
-        .from('time_clock')
-        .select('*, employees(name, category)')
-        .gte('clock_in_time', dateRange.from.toISOString())
-        .lte('clock_in_time', dateRange.to.toISOString())
-        .not('clock_out_time', 'is', null);
-
-      if (error) throw error;
-      return timeClock;
-    },
-  });
-
-  // Fetch equipment usage
-  const { data: equipmentUsage } = useQuery({
-    queryKey: ['equipmentUsage', dateRange],
+  // Fetch time clock entries (daily shifts)
+  const { data: timeClockEntries } = useQuery({
+    queryKey: ['timeClockReport', dateRange],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('work_log_equipment')
-        .select('*, equipment(name, type), work_logs!inner(check_in_time)')
-        .gte('work_logs.check_in_time', dateRange.from.toISOString())
-        .lte('work_logs.check_in_time', dateRange.to.toISOString());
+        .from('time_clock')
+        .select('*, employees(name)')
+        .gte('clock_in_time', dateRange.from.toISOString())
+        .lte('clock_in_time', dateRange.to.toISOString())
+        .not('clock_out_time', 'is', null)
+        .order('clock_in_time', { ascending: false });
 
       if (error) throw error;
       return data;
     },
   });
 
-  // Calculate summary stats
-  const summaryStats = {
-    totalPlowServices: workLogsSummary?.length || 0,
-    totalShovelServices: shovelLogsSummary?.length || 0,
-    totalSaltUsed: workLogsSummary?.reduce((sum, log) => sum + (log.salt_used || 0), 0) || 0,
-    totalHours: ((workLogsSummary?.reduce((sum, log) => sum + (log.duration_minutes || 0), 0) || 0) + 
-                 (shovelLogsSummary?.reduce((sum, log) => sum + (log.duration_minutes || 0), 0) || 0)) / 60,
-    avgSnowDepth: workLogsSummary?.length 
-      ? (workLogsSummary.reduce((sum, log) => sum + (log.snow_depth || 0), 0) / workLogsSummary.length).toFixed(1)
-      : '0',
-  };
+  // Apply filters to work logs
+  const filteredWorkLogs = useMemo(() => {
+    if (!workLogs) return [];
+    
+    return workLogs.filter(log => {
+      if (logType === 'shovel') return false;
+      if (selectedAccount !== 'all' && log.accounts?.name !== selectedAccount) return false;
+      if (selectedServiceType !== 'all' && log.service_type !== selectedServiceType) return false;
+      if (minSnowDepth && (log.snow_depth || 0) < parseFloat(minSnowDepth)) return false;
+      if (minSaltUsed && (log.salt_used || 0) < parseFloat(minSaltUsed)) return false;
+      if (selectedEmployee !== 'all') {
+        const hasEmployee = log.work_log_employees?.some(e => e.employees?.name === selectedEmployee);
+        if (!hasEmployee) return false;
+      }
+      if (selectedEquipment !== 'all') {
+        const hasEquipment = log.work_log_equipment?.some(e => e.equipment?.name === selectedEquipment);
+        if (!hasEquipment) return false;
+      }
+      return true;
+    });
+  }, [workLogs, logType, selectedAccount, selectedServiceType, minSnowDepth, minSaltUsed, selectedEmployee, selectedEquipment]);
 
-  // Prepare daily activity data
-  const dailyActivity = eachDayOfInterval({ start: dateRange.from, end: dateRange.to }).map(day => {
-    const dayStart = startOfDay(day);
-    const dayEnd = endOfDay(day);
+  // Apply filters to shovel logs
+  const filteredShovelLogs = useMemo(() => {
+    if (!shovelLogs) return [];
     
-    const plowLogs = workLogsSummary?.filter(log => {
-      const logDate = new Date(log.check_in_time);
-      return logDate >= dayStart && logDate <= dayEnd;
-    }) || [];
-    
-    const shovelLogs = shovelLogsSummary?.filter(log => {
-      const logDate = new Date(log.check_in_time);
-      return logDate >= dayStart && logDate <= dayEnd;
-    }) || [];
+    return shovelLogs.filter(log => {
+      if (logType === 'plow') return false;
+      if (selectedLocation !== 'all' && log.accounts?.name !== selectedLocation) return false;
+      if (selectedServiceType !== 'all' && log.service_type !== selectedServiceType) return false;
+      if (minSnowDepth && (log.snow_depth || 0) < parseFloat(minSnowDepth)) return false;
+      if (minSaltUsed && (log.salt_used || 0) < parseFloat(minSaltUsed)) return false;
+      if (selectedEmployee !== 'all') {
+        const hasEmployee = log.shovel_work_log_employees?.some(e => e.employees?.name === selectedEmployee);
+        if (!hasEmployee) return false;
+      }
+      return true;
+    });
+  }, [shovelLogs, logType, selectedLocation, selectedServiceType, minSnowDepth, minSaltUsed, selectedEmployee]);
+
+  // Combine all work entries for display
+  const allWorkEntries = useMemo(() => {
+    const plow = (logType === 'all' || logType === 'plow') ? filteredWorkLogs.map(log => ({
+      ...log,
+      type: 'plow' as const,
+      crew: log.work_log_employees?.map(e => e.employees?.name).filter(Boolean).join(', ') || '-',
+      equipmentName: log.work_log_equipment?.map(e => e.equipment?.name).filter(Boolean).join(', ') || '-',
+    })) : [];
+
+    const shovel = (logType === 'all' || logType === 'shovel') ? filteredShovelLogs.map(log => ({
+      ...log,
+      type: 'shovel' as const,
+      crew: log.shovel_work_log_employees?.map(e => e.employees?.name).filter(Boolean).join(', ') || '-',
+      equipmentName: '-',
+    })) : [];
+
+    return [...plow, ...shovel].sort((a, b) => 
+      new Date(b.check_in_time).getTime() - new Date(a.check_in_time).getTime()
+    );
+  }, [filteredWorkLogs, filteredShovelLogs, logType]);
+
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const plowCount = filteredWorkLogs.length;
+    const shovelCount = filteredShovelLogs.length;
+    const saltLogs = filteredWorkLogs.filter(log => log.service_type === 'salt' || log.service_type === 'both');
+    const uniqueLocations = new Set([
+      ...filteredWorkLogs.map(log => log.accounts?.name),
+      ...filteredShovelLogs.map(log => log.accounts?.name),
+    ].filter(Boolean));
 
     return {
-      date: format(day, 'MMM d'),
-      plow: plowLogs.length,
-      shovel: shovelLogs.length,
-      salt: plowLogs.reduce((sum, log) => sum + (log.salt_used || 0), 0),
+      total: plowCount + shovelCount,
+      plow: plowCount,
+      shovel: shovelCount,
+      salt: saltLogs.length,
+      locations: uniqueLocations.size,
     };
-  });
+  }, [filteredWorkLogs, filteredShovelLogs]);
 
-  // Prepare service type breakdown
-  const serviceTypeData = [
-    { name: 'Plow Only', value: workLogsSummary?.filter(log => log.service_type === 'plow').length || 0 },
-    { name: 'Salt Only', value: workLogsSummary?.filter(log => log.service_type === 'salt').length || 0 },
-    { name: 'Plow & Salt', value: workLogsSummary?.filter(log => log.service_type === 'both').length || 0 },
-    { name: 'Shovel', value: shovelLogsSummary?.length || 0 },
-  ].filter(d => d.value > 0);
+  const clearFilters = () => {
+    setLogType('all');
+    setSelectedAccount('all');
+    setSelectedLocation('all');
+    setSelectedEmployee('all');
+    setSelectedServiceType('all');
+    setSelectedEquipment('all');
+    setMinSnowDepth('');
+    setMinSaltUsed('');
+  };
 
-  // Prepare account activity data
-  const accountActivity = [...(workLogsSummary || []), ...(shovelLogsSummary || [])]
-    .reduce((acc, log) => {
-      const accountName = (log.accounts as any)?.name || 'Unknown';
-      if (!acc[accountName]) {
-        acc[accountName] = { services: 0, minutes: 0 };
-      }
-      acc[accountName].services += 1;
-      acc[accountName].minutes += log.duration_minutes || 0;
-      return acc;
-    }, {} as Record<string, { services: number; minutes: number }>);
+  const formatDuration = (minutes: number | null) => {
+    if (!minutes) return '-';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
 
-  const topAccounts = Object.entries(accountActivity)
-    .map(([name, data]) => ({ name, ...data }))
-    .sort((a, b) => b.services - a.services)
-    .slice(0, 10);
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return '-';
+    return format(new Date(dateString), 'HH:mm');
+  };
 
-  // Prepare employee hours data
-  const employeeHours = employeeStats?.reduce((acc, entry) => {
-    const name = (entry.employees as any)?.name || 'Unknown';
-    if (!acc[name]) {
-      acc[name] = { hours: 0, shifts: 0 };
+  const getServiceBadgeVariant = (serviceType: string) => {
+    switch (serviceType) {
+      case 'plow': return 'default';
+      case 'salt': return 'secondary';
+      case 'both': return 'default';
+      default: return 'outline';
     }
-    acc[name].hours += (entry.duration_minutes || 0) / 60;
-    acc[name].shifts += 1;
-    return acc;
-  }, {} as Record<string, { hours: number; shifts: number }>);
-
-  const employeeHoursData = Object.entries(employeeHours || {})
-    .map(([name, data]) => ({ name, ...data }))
-    .sort((a, b) => b.hours - a.hours)
-    .slice(0, 10);
+  };
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Reports</h1>
-            <p className="text-muted-foreground">Analytics & Performance Metrics</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileText className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Service Reports</h1>
+              <p className="text-sm text-muted-foreground">View, edit, and export work logs</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="this-week">This Week</SelectItem>
-                <SelectItem value="last-week">Last Week</SelectItem>
-                <SelectItem value="this-month">This Month</SelectItem>
-                <SelectItem value="last-month">Last Month</SelectItem>
-                <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-              </SelectContent>
-            </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="range"
-                  selected={{ from: dateRange.from, to: dateRange.to }}
-                  onSelect={(range) => {
-                    if (range?.from && range?.to) {
-                      setDateRange({ from: range.from, to: range.to });
-                      setSelectedPeriod('custom');
-                    }
-                  }}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+            <Button className="gap-2">
+              <Download className="h-4 w-4" />
+              Export Reports
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
           </div>
         </div>
 
-        {/* Summary Stats */}
+        {/* Report Filters */}
+        <Card className="glass">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Filter className="h-4 w-4" />
+              Report Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Date Range Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">From Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(dateRange.from, 'MM/dd/yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.from}
+                      onSelect={(date) => date && setDateRange(prev => ({ ...prev, from: date }))}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">To Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(dateRange.to, 'MM/dd/yyyy')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.to}
+                      onSelect={(date) => date && setDateRange(prev => ({ ...prev, to: date }))}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Log Type */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs">Log Type</Label>
+              <Select value={logType} onValueChange={setLogType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="plow">Plow Only</SelectItem>
+                  <SelectItem value="shovel">Shovel Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Account, Location, Employee Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Account (Plow)</Label>
+                <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Accounts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Accounts</SelectItem>
+                    {accounts?.map(account => (
+                      <SelectItem key={account.id} value={account.name}>{account.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Location (Shovel)</Label>
+                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {accounts?.map(account => (
+                      <SelectItem key={account.id} value={account.name}>{account.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Employee</Label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Employees" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Employees</SelectItem>
+                    {employees?.map(emp => (
+                      <SelectItem key={emp.id} value={emp.name}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Service Type, Equipment Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Service Type</Label>
+                <Select value={selectedServiceType} onValueChange={setSelectedServiceType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="plow">Plow</SelectItem>
+                    <SelectItem value="salt">Salt</SelectItem>
+                    <SelectItem value="both">Plow & Salt</SelectItem>
+                    <SelectItem value="shovel">Shovel</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Equipment</Label>
+                <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Equipment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Equipment</SelectItem>
+                    {equipment?.map(eq => (
+                      <SelectItem key={eq.id} value={eq.name}>{eq.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Min Snow Depth, Min Salt Used Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Min Snow Depth (Inches)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Any" 
+                  value={minSnowDepth}
+                  onChange={(e) => setMinSnowDepth(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Min Salt Used (lbs)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Any" 
+                  value={minSaltUsed}
+                  onChange={(e) => setMinSaltUsed(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={clearFilters}>
+              Clear All Filters
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Daily Shifts */}
+        <Card className="glass">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="h-4 w-4" />
+              Daily Shifts ({timeClockEntries?.length || 0} shifts)
+            </CardTitle>
+            <Button variant="outline" size="sm">Add Shift</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Start Time</TableHead>
+                    <TableHead>End Time</TableHead>
+                    <TableHead>Total Hours</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {timeClockEntries?.slice(0, 10).map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">
+                        {(entry.employees as any)?.name || 'Unknown'}
+                      </TableCell>
+                      <TableCell>{format(new Date(entry.clock_in_time), 'MM/dd/yy')}</TableCell>
+                      <TableCell>{formatTime(entry.clock_in_time)}</TableCell>
+                      <TableCell>{formatTime(entry.clock_out_time)}</TableCell>
+                      <TableCell>
+                        <span className="text-primary font-medium">
+                          {entry.duration_minutes ? (entry.duration_minutes / 60).toFixed(2) + 'h' : '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="link" size="sm" className="p-0 h-auto text-primary">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {(!timeClockEntries || timeClockEntries.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No shifts found for the selected period
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Summary Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className="glass">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Truck className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{summaryStats.totalPlowServices}</p>
-                  <p className="text-xs text-muted-foreground">Plow Services</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Total Services</p>
+              <p className="text-3xl font-bold">{summaryStats.total}</p>
             </CardContent>
           </Card>
-
           <Card className="glass">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-info/10">
-                  <Snowflake className="h-5 w-5 text-info" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{summaryStats.totalShovelServices}</p>
-                  <p className="text-xs text-muted-foreground">Shovel Services</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Plow Services</p>
+              <p className="text-3xl font-bold text-primary">{summaryStats.plow}</p>
             </CardContent>
           </Card>
-
           <Card className="glass">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-warning/10">
-                  <ThermometerSnowflake className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{summaryStats.totalSaltUsed.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Salt (lbs)</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Shovel Services</p>
+              <p className="text-3xl font-bold text-info">{summaryStats.shovel}</p>
             </CardContent>
           </Card>
-
           <Card className="glass">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-success/10">
-                  <Clock className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{summaryStats.totalHours.toFixed(1)}</p>
-                  <p className="text-xs text-muted-foreground">Total Hours</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Salt Services</p>
+              <p className="text-3xl font-bold text-warning">{summaryStats.salt}</p>
             </CardContent>
           </Card>
-
           <Card className="glass">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/10">
-                  <TrendingUp className="h-5 w-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{summaryStats.avgSnowDepth}"</p>
-                  <p className="text-xs text-muted-foreground">Avg Snow Depth</p>
-                </div>
-              </div>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">Locations</p>
+              <p className="text-3xl font-bold text-success">{summaryStats.locations}</p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="activity" className="space-y-6">
-          <TabsList className="glass">
-            <TabsTrigger value="activity" className="gap-2">
-              <Activity className="h-4 w-4" />
-              Activity
-            </TabsTrigger>
-            <TabsTrigger value="accounts" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              Accounts
-            </TabsTrigger>
-            <TabsTrigger value="employees" className="gap-2">
-              <Users className="h-4 w-4" />
-              Employees
-            </TabsTrigger>
-            <TabsTrigger value="breakdown" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Breakdown
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Activity Tab */}
-          <TabsContent value="activity" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Daily Services Chart */}
-              <Card className="glass">
-                <CardHeader>
-                  <CardTitle>Daily Services</CardTitle>
-                  <CardDescription>Plow and shovel services by day</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={dailyActivity}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="date" className="text-xs fill-muted-foreground" />
-                        <YAxis className="text-xs fill-muted-foreground" />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }} 
-                        />
-                        <Legend />
-                        <Area 
-                          type="monotone" 
-                          dataKey="plow" 
-                          name="Plow" 
-                          stackId="1"
-                          stroke="hsl(var(--primary))" 
-                          fill="hsl(var(--primary))" 
-                          fillOpacity={0.6}
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="shovel" 
-                          name="Shovel" 
-                          stackId="1"
-                          stroke="hsl(var(--info))" 
-                          fill="hsl(var(--info))" 
-                          fillOpacity={0.6}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Salt Usage Chart */}
-              <Card className="glass">
-                <CardHeader>
-                  <CardTitle>Salt Usage</CardTitle>
-                  <CardDescription>Daily salt consumption in pounds</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dailyActivity}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="date" className="text-xs fill-muted-foreground" />
-                        <YAxis className="text-xs fill-muted-foreground" />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }} 
-                        />
-                        <Bar 
-                          dataKey="salt" 
-                          name="Salt (lbs)" 
-                          fill="hsl(var(--warning))" 
-                          radius={[4, 4, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Accounts Tab */}
-          <TabsContent value="accounts" className="space-y-6">
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Top Accounts by Service Count</CardTitle>
-                <CardDescription>Most serviced accounts in the selected period</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topAccounts} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis type="number" className="text-xs fill-muted-foreground" />
-                      <YAxis dataKey="name" type="category" width={150} className="text-xs fill-muted-foreground" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }} 
-                      />
-                      <Bar 
-                        dataKey="services" 
-                        name="Services" 
-                        fill="hsl(var(--primary))" 
-                        radius={[0, 4, 4, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Account List */}
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Account Details</CardTitle>
-                <CardDescription>Service details by account</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {topAccounts.map((account, index) => (
-                      <div 
-                        key={account.name} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-medium">{account.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {Math.round(account.minutes / 60)}h {account.minutes % 60}m total time
-                            </p>
-                          </div>
+        {/* Work Log Entries */}
+        <Card className="glass">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Work Log Entries ({allWorkEntries.length})</CardTitle>
+            <Button variant="outline" size="sm">Add Entry</Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date/Time</TableHead>
+                    <TableHead>Check In</TableHead>
+                    <TableHead>Check Out</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead>Snow/Salt</TableHead>
+                    <TableHead>Weather</TableHead>
+                    <TableHead>Equipment</TableHead>
+                    <TableHead>Crew</TableHead>
+                    <TableHead>Photo</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allWorkEntries.slice(0, 20).map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>
+                        <Badge variant={entry.type === 'plow' ? 'default' : 'secondary'}>
+                          {entry.type === 'plow' ? 'Plow' : 'Shovel'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="text-sm">
+                          {format(new Date(entry.check_in_time), 'MM/dd/yy')}
                         </div>
-                        <Badge variant="secondary">{account.services} services</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Employees Tab */}
-          <TabsContent value="employees" className="space-y-6">
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Employee Hours</CardTitle>
-                <CardDescription>Hours worked by employee</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={employeeHoursData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis type="number" className="text-xs fill-muted-foreground" />
-                      <YAxis dataKey="name" type="category" width={120} className="text-xs fill-muted-foreground" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                        }}
-                        formatter={(value: number) => [`${value.toFixed(1)}h`, 'Hours']}
-                      />
-                      <Bar 
-                        dataKey="hours" 
-                        name="Hours" 
-                        fill="hsl(var(--success))" 
-                        radius={[0, 4, 4, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Employee List */}
-            <Card className="glass">
-              <CardHeader>
-                <CardTitle>Employee Details</CardTitle>
-                <CardDescription>Shift details by employee</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2">
-                    {employeeHoursData.map((employee, index) => (
-                      <div 
-                        key={employee.name} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-sm font-semibold text-success">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-medium">{employee.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {employee.shifts} shifts
-                            </p>
-                          </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatTime(entry.check_in_time)}
                         </div>
-                        <Badge variant="secondary">{employee.hours.toFixed(1)}h</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Breakdown Tab */}
-          <TabsContent value="breakdown" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Service Type Pie Chart */}
-              <Card className="glass">
-                <CardHeader>
-                  <CardTitle>Service Type Distribution</CardTitle>
-                  <CardDescription>Breakdown of service types</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={serviceTypeData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                        >
-                          {serviceTypeData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--card))', 
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }} 
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Stats */}
-              <Card className="glass">
-                <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
-                  <CardDescription>Key performance indicators</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground">Total Services</span>
-                      <span className="text-2xl font-bold">
-                        {summaryStats.totalPlowServices + summaryStats.totalShovelServices}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground">Avg Services/Day</span>
-                      <span className="text-2xl font-bold">
-                        {dailyActivity.length > 0 
-                          ? ((summaryStats.totalPlowServices + summaryStats.totalShovelServices) / dailyActivity.length).toFixed(1)
-                          : '0'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground">Avg Service Duration</span>
-                      <span className="text-2xl font-bold">
-                        {(summaryStats.totalPlowServices + summaryStats.totalShovelServices) > 0
-                          ? Math.round((summaryStats.totalHours * 60) / (summaryStats.totalPlowServices + summaryStats.totalShovelServices))
-                          : 0} min
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                      <span className="text-muted-foreground">Unique Accounts Serviced</span>
-                      <span className="text-2xl font-bold">{Object.keys(accountActivity).length}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </TableCell>
+                      <TableCell>{formatTime(entry.check_in_time)}</TableCell>
+                      <TableCell>{formatTime(entry.check_out_time)}</TableCell>
+                      <TableCell>{formatDuration(entry.duration_minutes)}</TableCell>
+                      <TableCell className="max-w-[120px] truncate">
+                        {entry.accounts?.name || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getServiceBadgeVariant(entry.service_type)}>
+                          {entry.service_type === 'both' ? 'Plowed' : entry.service_type === 'salt' ? 'Salted' : 'Plowed'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lbs` : '-'}
+                      </TableCell>
+                      <TableCell className="max-w-[100px]">
+                        <div className="text-xs">
+                          {entry.temperature ? `${entry.temperature}°F` : '-'}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {entry.weather_description || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[100px] truncate">
+                        {entry.equipmentName}
+                      </TableCell>
+                      <TableCell className="max-w-[100px] truncate">
+                        {entry.crew}
+                      </TableCell>
+                      <TableCell>
+                        {entry.photo_url ? (
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Image className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {allWorkEntries.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                        No work log entries found for the selected filters
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
