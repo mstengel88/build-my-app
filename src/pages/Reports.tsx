@@ -285,9 +285,9 @@ const Reports = () => {
   const getServiceBadgeClass = (serviceType: string) => {
     switch (serviceType) {
       case 'salt': return 'bg-success text-success-foreground';
+      case 'shovel': return 'bg-shovel text-shovel-foreground';
       case 'plow': 
       case 'both':
-      case 'shovel':
       default: return 'bg-primary text-primary-foreground';
     }
   };
