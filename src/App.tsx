@@ -14,6 +14,7 @@ import ClientPortal from "./pages/ClientPortal";
 import Accounts from "./pages/Accounts";
 import Equipment from "./pages/Equipment";
 import Employees from "./pages/Employees";
+import TimeClock from "./pages/TimeClock";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -90,6 +91,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager']}>
                   <Employees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/time-clock"
+              element={
+                <ProtectedRoute requireStaff>
+                  <TimeClock />
                 </ProtectedRoute>
               }
             />
