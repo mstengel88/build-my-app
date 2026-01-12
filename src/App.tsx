@@ -19,6 +19,7 @@ import WorkLogs from "./pages/WorkLogs";
 import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
 import RoutePlanner from "./pages/RoutePlanner";
+import AuditLog from "./pages/AuditLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -135,6 +136,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager', 'driver']}>
                   <RoutePlanner />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/audit-log"
+              element={
+                <ProtectedRoute requireSuperAdmin>
+                  <AuditLog />
                 </ProtectedRoute>
               }
             />
