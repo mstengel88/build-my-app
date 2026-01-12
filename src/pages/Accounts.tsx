@@ -70,6 +70,8 @@ const defaultFormData = {
   priority: 'normal' as AccountPriority,
   status: 'active' as AccountStatus,
   notes: '',
+  latitude: '' as string,
+  longitude: '' as string,
 };
 
 const Accounts = () => {
@@ -95,7 +97,7 @@ const Accounts = () => {
 
   // Create/Update mutation
   const saveMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: { name: string; address: string; city: string; state: string; zip: string; contact_name: string; contact_phone: string; contact_email: string; service_type: ServiceType; priority: AccountPriority; status: AccountStatus; notes: string; latitude: number | null; longitude: number | null }) => {
       if (selectedAccount) {
         const { error } = await supabase
           .from('accounts')
@@ -174,6 +176,8 @@ const Accounts = () => {
       priority: (account.priority as AccountPriority) || 'normal',
       status: (account.status as AccountStatus) || 'active',
       notes: account.notes || '',
+      latitude: account.latitude?.toString() || '',
+      longitude: account.longitude?.toString() || '',
     });
     setDialogOpen(true);
   };
@@ -185,7 +189,12 @@ const Accounts = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMutation.mutate(formData);
+    const dataToSave = {
+      ...formData,
+      latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+      longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+    };
+    saveMutation.mutate(dataToSave);
   };
 
   const handleCSVImport = async (data: Record<string, any>[]) => {
@@ -207,6 +216,8 @@ const Accounts = () => {
     { key: 'priority', label: 'Priority' },
     { key: 'status', label: 'Status' },
     { key: 'notes', label: 'Notes' },
+    { key: 'latitude', label: 'Latitude' },
+    { key: 'longitude', label: 'Longitude' },
   ];
 
   const columns: Column<Account>[] = [
@@ -503,6 +514,30 @@ const Accounts = () => {
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="latitude">Latitude</Label>
+                <Input
+                  id="latitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 41.8781"
+                  value={formData.latitude}
+                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="longitude">Longitude</Label>
+                <Input
+                  id="longitude"
+                  type="number"
+                  step="any"
+                  placeholder="e.g. -87.6298"
+                  value={formData.longitude}
+                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
                 />
               </div>
             </div>
