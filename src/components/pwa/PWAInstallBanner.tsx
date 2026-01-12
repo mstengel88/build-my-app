@@ -60,7 +60,7 @@ export const PWAInstallBanner = () => {
           <Download className="h-6 w-6 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm">Install Snow Tracker</p>
+          <p className="font-medium text-sm">Install WinterWatch-Pro</p>
           <p className="text-xs text-muted-foreground truncate">
             Add to home screen for quick access
           </p>
