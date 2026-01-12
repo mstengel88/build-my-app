@@ -51,6 +51,11 @@ const ShovelCrewDashboard = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  // Auto-trigger GPS on page load
+  useEffect(() => {
+    getPosition();
+  }, []);
+
   // Fetch current weather
   useEffect(() => {
     if (position) {
