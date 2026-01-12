@@ -363,6 +363,16 @@ const Dashboard = () => {
           });
       }
 
+      // Link selected equipment to work log
+      if (selectedEquipment && workLog) {
+        await supabase
+          .from('work_log_equipment')
+          .insert({
+            work_log_id: workLog.id,
+            equipment_id: selectedEquipment,
+          });
+      }
+
       toast({
         title: 'Service logged!',
         description: `Service completed in ${durationMinutes} minutes.`,
