@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CloudSnow, Users, Building2, Loader2 } from 'lucide-react';
+import { Users, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import winterwatchLogo from '@/assets/winterwatch-pro-logo.png';
 
 const Home = () => {
   const [email, setEmail] = useState('');
@@ -82,11 +83,13 @@ const Home = () => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="p-4 rounded-full bg-primary/10">
-              <CloudSnow className="h-12 w-12 text-primary" />
-            </div>
+            <img 
+              src={winterwatchLogo} 
+              alt="WinterWatch-Pro Logo" 
+              className="h-24 w-24 rounded-full object-cover"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Snow Tracker</h1>
+          <h1 className="text-3xl font-bold text-foreground">WinterWatch-Pro</h1>
           <p className="text-muted-foreground mt-2">
             Field Service Management System
           </p>
@@ -237,7 +240,7 @@ const Home = () => {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} Snow Tracker. All rights reserved.
+          &copy; {new Date().getFullYear()} WinterWatch-Pro. All rights reserved.
         </p>
       </div>
     </div>
