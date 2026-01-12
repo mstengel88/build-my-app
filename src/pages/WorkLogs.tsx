@@ -8,20 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -245,91 +238,83 @@ const WorkLogs = () => {
   };
 
   const renderLogTable = (logs: (WorkLog | ShovelWorkLog)[], loading: boolean, type: 'plow' | 'shovel') => (
-    <div className="rounded-md border border-border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead>Date</TableHead>
-            <TableHead>Account</TableHead>
-            <TableHead>Service</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Snow</TableHead>
-            <TableHead>Salt</TableHead>
-            <TableHead>Crew</TableHead>
-            <TableHead className="w-[70px]">Details</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center py-8">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  Loading...
+    <Card className="bg-card border-border">
+      <CardContent className="p-0">
+        <ScrollArea className="h-[600px]">
+          <div className="divide-y divide-border">
+            {loading ? (
+              <div className="p-8 flex items-center justify-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                Loading...
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="p-8 flex flex-col items-center justify-center text-center">
+                <div className="p-4 rounded-full bg-muted/30 mb-4">
+                  <ClipboardList className="h-8 w-8 text-muted-foreground" />
                 </div>
-              </TableCell>
-            </TableRow>
-          ) : logs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                No work logs found for this period
-              </TableCell>
-            </TableRow>
-          ) : (
-            logs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>
-                  <div className="text-sm">
-                    <div>{format(parseISO(log.check_in_time), 'MMM d, yyyy')}</div>
-                    <div className="text-muted-foreground">
-                      {format(parseISO(log.check_in_time), 'h:mm a')}
+                <p className="font-medium text-muted-foreground">No work logs found</p>
+                <p className="text-sm text-muted-foreground">No logs for this period</p>
+              </div>
+            ) : (
+              logs.map((log) => (
+                <div key={log.id} className="p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0 ${
+                    type === 'plow' ? 'bg-primary/10' : 'bg-shovel/10'
+                  }`}>
+                    {type === 'plow' ? (
+                      <Truck className={`h-5 w-5 text-primary`} />
+                    ) : (
+                      <Shovel className={`h-5 w-5 text-shovel`} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-foreground">{log.accounts?.name}</span>
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {log.service_type === 'both' ? 'Plow & Salt' : log.service_type}
+                      </Badge>
+                      {log.duration_minutes ? (
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {Math.floor(log.duration_minutes / 60)}h {log.duration_minutes % 60}m
+                        </span>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Active</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {format(parseISO(log.check_in_time), 'MMM d, h:mm a')} • {getEmployeeNames(log)}
+                    </p>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                      {log.snow_depth && (
+                        <span className="flex items-center gap-1">
+                          <Snowflake className="h-3 w-3" /> {log.snow_depth}"
+                        </span>
+                      )}
+                      {log.salt_used && (
+                        <span className="flex items-center gap-1">
+                          <ThermometerSnowflake className="h-3 w-3" /> {log.salt_used} lbs
+                        </span>
+                      )}
+                      {log.notes && (
+                        <span className="truncate max-w-[150px]">{log.notes}</span>
+                      )}
                     </div>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{log.accounts?.name}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[150px]">
-                    {log.accounts?.address}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="capitalize">
-                    {log.service_type === 'both' ? 'Plow & Salt' : log.service_type}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {log.duration_minutes ? (
-                    <span className="font-mono">
-                      {Math.floor(log.duration_minutes / 60)}h {log.duration_minutes % 60}m
-                    </span>
-                  ) : (
-                    <Badge variant="secondary">Active</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {log.snow_depth ? `${log.snow_depth}"` : '-'}
-                </TableCell>
-                <TableCell>
-                  {log.salt_used ? `${log.salt_used} lbs` : '-'}
-                </TableCell>
-                <TableCell className="max-w-[120px] truncate">
-                  {getEmployeeNames(log)}
-                </TableCell>
-                <TableCell>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => viewDetails(log)}
+                    className="flex-shrink-0"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -436,11 +421,7 @@ const WorkLogs = () => {
             </div>
 
             {/* Plow Table */}
-            <Card className="glass">
-              <CardContent className="p-6">
-                {renderLogTable(filteredPlowLogs, plowLoading, 'plow')}
-              </CardContent>
-            </Card>
+            {renderLogTable(filteredPlowLogs, plowLoading, 'plow')}
           </TabsContent>
 
           <TabsContent value="shovel" className="space-y-4">
@@ -482,11 +463,7 @@ const WorkLogs = () => {
             </div>
 
             {/* Shovel Table */}
-            <Card className="glass">
-              <CardContent className="p-6">
-                {renderLogTable(filteredShovelLogs, shovelLoading, 'shovel')}
-              </CardContent>
-            </Card>
+            {renderLogTable(filteredShovelLogs, shovelLoading, 'shovel')}
           </TabsContent>
         </Tabs>
       </div>
