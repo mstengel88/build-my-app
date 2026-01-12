@@ -302,18 +302,16 @@ const ShovelCrewDashboard = () => {
       const checkInTime = new Date(checkInState.checkInTime!);
       const durationMinutes = Math.round((checkOutTime.getTime() - checkInTime.getTime()) / 60000);
 
-      let photoUrl = null;
+      let photoUrl: string | null = null;
       if (photoFile) {
-        const fileName = `${Date.now()}-${photoFile.name}`;
+        const fileName = `shovel/${Date.now()}-${photoFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from('work-photos')
           .upload(fileName, photoFile);
         
         if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('work-photos')
-            .getPublicUrl(fileName);
-          photoUrl = urlData.publicUrl;
+          // Store the file path, not a URL - signed URLs are generated when viewing
+          photoUrl = fileName;
         }
       }
 
