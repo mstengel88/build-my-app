@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -43,8 +43,11 @@ import {
   Shovel,
   Filter,
   Eye,
+  Camera,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
+import { PhotoUpload } from '@/components/worklog/PhotoUpload';
 
 interface WorkLog {
   id: string;
@@ -84,11 +87,14 @@ interface ShovelWorkLog {
 
 const WorkLogs = () => {
   const { isAdminOrManager } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('this-month');
   const [accountFilter, setAccountFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState<WorkLog | ShovelWorkLog | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
 
   // Calculate date range based on filter
   const getDateRange = () => {
@@ -203,9 +209,29 @@ const WorkLogs = () => {
     totalSalt: filteredShovelLogs.reduce((sum, log) => sum + (log.salt_used || 0), 0),
   };
 
-  const viewDetails = (log: WorkLog | ShovelWorkLog) => {
+  const viewDetails = async (log: WorkLog | ShovelWorkLog) => {
     setSelectedLog(log);
     setDetailsOpen(true);
+    setShowPhotoUpload(false);
+
+    // Load photo if exists
+    if (log.photo_url) {
+      try {
+        const { data, error } = await supabase.storage
+          .from('work-photos')
+          .createSignedUrl(log.photo_url, 60 * 60); // 1 hour
+        
+        if (!error && data) {
+          setPhotoUrl(data.signedUrl);
+        } else {
+          setPhotoUrl(null);
+        }
+      } catch {
+        setPhotoUrl(null);
+      }
+    } else {
+      setPhotoUrl(null);
+    }
   };
 
   const getEmployeeNames = (log: WorkLog | ShovelWorkLog): string => {
@@ -560,6 +586,60 @@ const WorkLogs = () => {
                   <div className="text-sm">{selectedLog.weather_description}</div>
                 </div>
               )}
+
+              {/* Photo Section */}
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Camera className="h-3 w-3" />
+                    Photo Documentation
+                  </div>
+                  {!showPhotoUpload && !photoUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowPhotoUpload(true)}
+                    >
+                      <ImageIcon className="h-3 w-3 mr-1" />
+                      Add Photo
+                    </Button>
+                  )}
+                </div>
+
+                {photoUrl && !showPhotoUpload ? (
+                  <div className="relative">
+                    <img
+                      src={photoUrl}
+                      alt="Work log documentation"
+                      className="w-full h-48 object-cover rounded-lg border border-border"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="absolute bottom-2 right-2 h-7 text-xs"
+                      onClick={() => setShowPhotoUpload(true)}
+                    >
+                      Replace Photo
+                    </Button>
+                  </div>
+                ) : showPhotoUpload ? (
+                  <PhotoUpload
+                    workLogId={selectedLog.id}
+                    workLogType={'work_log_employees' in selectedLog ? 'plow' : 'shovel'}
+                    currentPhotoUrl={photoUrl}
+                    onPhotoUploaded={(url) => {
+                      setPhotoUrl(url);
+                      setShowPhotoUpload(false);
+                      queryClient.invalidateQueries({ queryKey: ['workLogs'] });
+                    }}
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground p-4 text-center bg-muted/30 rounded-lg">
+                    No photo attached
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

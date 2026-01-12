@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import {
   Menu,
   Home,
@@ -14,7 +15,6 @@ import {
   MapPin,
   FileText,
   Settings,
-  Bell,
   LogOut,
   LayoutDashboard,
   Clock,
@@ -174,9 +174,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="touch-target" onClick={() => navigate('/notifications')}>
-            <Bell className="h-5 w-5" />
-          </Button>
+          <NotificationsDropdown />
         </div>
       </header>
 
