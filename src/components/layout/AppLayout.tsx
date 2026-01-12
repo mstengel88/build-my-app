@@ -51,9 +51,7 @@ const navigationItems: NavItem[] = [
   { title: 'Snow Forecast', href: '/snow-forecast', icon: CloudSnow, roles: ['admin', 'manager'] },
   { title: 'Reports', href: '/reports', icon: FileText, roles: ['admin', 'manager'] },
   { title: 'Admin', href: '/admin', icon: LayoutDashboard, roles: ['admin', 'manager'] },
-  { title: 'Users', href: '/users', icon: Shield, roles: ['admin'] },
   { title: 'Audit Log', href: '/audit-log', icon: Database, roles: ['admin'] },
-  { title: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
