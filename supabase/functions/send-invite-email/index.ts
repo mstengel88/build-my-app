@@ -66,24 +66,31 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Generate invite link using Supabase's built-in invite
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-      data: {
-        display_name: displayName || email.split("@")[0],
-        invited_role: role,
+    const origin = req.headers.get("origin") || supabaseUrl;
+    
+    // Generate invite link with actual token
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
+        data: {
+          display_name: displayName || email.split("@")[0],
+          invited_role: role,
+        },
+        redirectTo: `${origin}/redirect`,
       },
-      redirectTo: `${req.headers.get("origin") || supabaseUrl}/redirect`,
     });
 
-    if (inviteError) {
-      console.error("Invite error:", inviteError);
-      return new Response(JSON.stringify({ error: inviteError.message }), {
+    if (linkError) {
+      console.error("Invite error:", linkError);
+      return new Response(JSON.stringify({ error: linkError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const newUserId = inviteData.user?.id;
+    const newUserId = linkData.user?.id;
+    const inviteLink = linkData.properties?.action_link;
 
     // Assign role to the new user
     if (newUserId) {
@@ -154,7 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <p>Click the button below to set up your account and get started:</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${inviteData.user?.confirmation_sent_at ? `${req.headers.get("origin") || supabaseUrl}/redirect` : '#'}" 
+                  <a href="${inviteLink}" 
                      style="background: linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
                     Accept Invitation
                   </a>
