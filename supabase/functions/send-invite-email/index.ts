@@ -137,6 +137,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (!resendApiKey) {
+      // Don't fail the whole invite flow if email isn't configured.
+      // Return the invite link so an admin can share it manually.
       return new Response(
         JSON.stringify({
           error: "Email provider is not configured (missing RESEND_API_KEY)",
@@ -145,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
           emailSent: false,
         }),
         {
-          status: 500,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -213,6 +215,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       console.error("Resend error:", emailResponse.status, emailResponseJson ?? emailResponseText);
+
+      // Resend can reject sends until a domain is verified. In that case, we still want the
+      // invitation flow to succeed by returning the generated link for manual sharing.
       return new Response(
         JSON.stringify({
           error: `Email provider rejected the request (${emailResponse.status})`,
@@ -222,7 +227,7 @@ const handler = async (req: Request): Promise<Response> => {
           emailSent: false,
         }),
         {
-          status: 502,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
