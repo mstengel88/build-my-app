@@ -282,12 +282,13 @@ const Reports = () => {
     return format(new Date(dateString), 'HH:mm');
   };
 
-  const getServiceBadgeVariant = (serviceType: string) => {
+  const getServiceBadgeClass = (serviceType: string) => {
     switch (serviceType) {
-      case 'plow': return 'default';
-      case 'salt': return 'secondary';
-      case 'both': return 'default';
-      default: return 'outline';
+      case 'salt': return 'bg-success text-success-foreground';
+      case 'plow': 
+      case 'both':
+      case 'shovel':
+      default: return 'bg-primary text-primary-foreground';
     }
   };
 
@@ -637,7 +638,7 @@ const Reports = () => {
                         {entry.accounts?.name || '-'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={getServiceBadgeVariant(entry.service_type)} className="text-[10px] px-1.5 py-0.5">
+                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type)}`}>
                           {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : entry.service_type === 'shovel' ? 'Shov' : 'Plow'}
                         </Badge>
                       </TableCell>

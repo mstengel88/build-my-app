@@ -267,7 +267,11 @@ const Accounts = () => {
       key: 'service_type',
       header: 'Service',
       render: (account) => (
-        <Badge variant="outline" className="capitalize">
+        <Badge className={`capitalize ${
+          account.service_type === 'salt' 
+            ? 'bg-success text-success-foreground' 
+            : 'bg-primary text-primary-foreground'
+        }`}>
           {account.service_type || 'both'}
         </Badge>
       ),
