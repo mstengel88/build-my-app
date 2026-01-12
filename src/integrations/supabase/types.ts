@@ -300,6 +300,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "geofence_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "geofence_events_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -357,6 +364,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -531,6 +545,13 @@ export type Database = {
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "service_requests_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       settings: {
@@ -663,6 +684,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shovel_work_logs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -921,11 +949,80 @@ export type Database = {
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_logs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      accounts_secure: {
+        Row: {
+          address: string | null
+          city: string | null
+          client_user_id: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          notes: string | null
+          priority: string | null
+          service_type: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          client_user_id?: string | null
+          contact_email?: never
+          contact_name?: never
+          contact_phone?: never
+          created_at?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          notes?: string | null
+          priority?: string | null
+          service_type?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          client_user_id?: string | null
+          contact_email?: never
+          contact_name?: never
+          contact_phone?: never
+          created_at?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          notes?: string | null
+          priority?: string | null
+          service_type?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_employee_id: { Args: { _user_id: string }; Returns: string }
