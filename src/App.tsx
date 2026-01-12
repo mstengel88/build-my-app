@@ -20,6 +20,7 @@ import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
 import RoutePlanner from "./pages/RoutePlanner";
 import AuditLog from "./pages/AuditLog";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -143,9 +144,17 @@ const App = () => (
               path="/audit-log"
               element={
                 <ProtectedRoute requireSuperAdmin>
-                  <AuditLog />
-                </ProtectedRoute>
-              }
+                <AuditLog />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
             />
 
             {/* Client routes */}
