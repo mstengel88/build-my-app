@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PWAInstallBanner } from "@/components/pwa/PWAInstallBanner";
 import { Loader2 } from "lucide-react";
 
 // Lazy load pages for code splitting
@@ -23,6 +24,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const RoutePlanner = lazy(() => import("./pages/RoutePlanner"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -61,10 +63,12 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <PWAInstallBanner />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/install" element={<Install />} />
 
               {/* Role-based redirect */}
               <Route path="/redirect" element={<RoleBasedRedirect />} />
