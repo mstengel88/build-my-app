@@ -316,6 +316,18 @@ const Dashboard = () => {
     }
   }, [nearestAccount, selectedAccount, position]);
 
+  // Form validation - all fields required except notes and photo
+  const isFormValid = 
+    selectedAccount &&
+    serviceType &&
+    selectedEquipment.length > 0 &&
+    selectedEmployees.length > 0 &&
+    snowDepth.trim() !== '' &&
+    saltUsed.trim() !== '' &&
+    temperature.trim() !== '' &&
+    weatherDescription.trim() !== '' &&
+    windSpeed.trim() !== '';
+
   const handleCheckIn = async () => {
     if (!selectedAccount) {
       toast({
@@ -1002,10 +1014,16 @@ const Dashboard = () => {
               onClick={checkInState.isCheckedIn ? handleLogService : handleCheckIn}
               className={`w-full h-12 text-base ${
                 checkInState.isCheckedIn 
-                  ? 'bg-success hover:bg-success/90' 
+                  ? isFormValid 
+                    ? 'bg-success hover:bg-success/90' 
+                    : 'bg-muted text-muted-foreground cursor-not-allowed'
                   : 'bg-destructive/80 hover:bg-destructive'
               }`}
-              disabled={!checkInState.isCheckedIn && (!selectedAccount || !activeShift)}
+              disabled={
+                checkInState.isCheckedIn 
+                  ? !isFormValid 
+                  : (!selectedAccount || !activeShift)
+              }
             >
               {checkInState.isCheckedIn ? (
                 <>
@@ -1016,6 +1034,11 @@ const Dashboard = () => {
                 'Check In First'
               )}
             </Button>
+            {checkInState.isCheckedIn && !isFormValid && (
+              <p className="text-xs text-center text-destructive">
+                Please fill in all required fields (Equipment, Employees, Snow Depth, Salt Used, Weather info)
+              </p>
+            )}
           </div>
 
           {/* Recent Activity */}
