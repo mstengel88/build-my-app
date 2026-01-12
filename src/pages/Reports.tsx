@@ -282,10 +282,11 @@ const Reports = () => {
     return format(new Date(dateString), 'HH:mm');
   };
 
-  const getServiceBadgeClass = (serviceType: string) => {
+  const getServiceBadgeClass = (serviceType: string, entryType?: string) => {
+    // If it's a shovel log type, use shovel color
+    if (entryType === 'shovel') return 'bg-shovel text-shovel-foreground';
     switch (serviceType) {
       case 'salt': return 'bg-success text-success-foreground';
-      case 'shovel': return 'bg-shovel text-shovel-foreground';
       case 'plow': 
       case 'both':
       default: return 'bg-primary text-primary-foreground';
@@ -638,8 +639,8 @@ const Reports = () => {
                         {entry.accounts?.name || '-'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type)}`}>
-                          {entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : entry.service_type === 'shovel' ? 'Shov' : 'Plow'}
+                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type, entry.type)}`}>
+                          {entry.type === 'shovel' ? 'Shov' : entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : 'Plow'}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
