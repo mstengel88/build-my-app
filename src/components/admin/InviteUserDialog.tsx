@@ -79,10 +79,17 @@ export function InviteUserDialog({ open, onOpenChange }: InviteUserDialogProps) 
 
       // If the email provider rejected the send, still show the generated link so the admin can share it manually
       if (response.data?.emailSent === false && response.data?.inviteLink) {
+        // Reset form and close dialog since the user was created successfully
+        setEmail('');
+        setDisplayName('');
+        setRole('driver');
+        setCreateEmployee(true);
+        onOpenChange(false);
+        queryClient.invalidateQueries({ queryKey: ['usersWithRoles'] });
+
         toast({
           title: 'Invite link generated (email not sent)',
-          description: `Copy and send this link manually: ${response.data.inviteLink}`,
-          variant: 'destructive',
+          description: `User created. Share this link manually: ${response.data.inviteLink}`,
         });
         return;
       }
