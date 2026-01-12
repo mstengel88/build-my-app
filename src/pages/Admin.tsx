@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
@@ -100,9 +101,7 @@ const Admin = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserRole, setNewUserRole] = useState<AppRole>('driver');
-  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   // Fetch all users with roles
   const { data: usersWithRoles = [], isLoading: usersLoading } = useQuery({
@@ -337,11 +336,16 @@ const Admin = () => {
               <p className="text-muted-foreground">System overview and management</p>
             </div>
           </div>
-          <Button className="gap-2 bg-success hover:bg-success/90 text-success-foreground">
+          <Button 
+            className="gap-2 bg-success hover:bg-success/90 text-success-foreground"
+            onClick={() => setInviteDialogOpen(true)}
+          >
             <UserPlus className="h-4 w-4" />
             Invite User
           </Button>
         </div>
+
+        <InviteUserDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
 
         {/* Quick Action Cards */}
         <div className="grid md:grid-cols-2 gap-4">
