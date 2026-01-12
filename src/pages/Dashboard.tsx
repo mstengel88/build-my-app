@@ -497,7 +497,7 @@ const Dashboard = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">Snow Tracker</h1>
+                <h1 className="text-2xl font-bold text-foreground">WinterWatch-Pro</h1>
                 <span className="text-muted-foreground">
                   {currentTemp !== null ? `${currentTemp}°F` : weatherLoading ? '...' : '--°F'}
                 </span>

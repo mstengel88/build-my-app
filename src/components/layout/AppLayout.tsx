@@ -26,6 +26,7 @@ import {
   User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import winterwatchLogo from '@/assets/winterwatch-pro-logo.png';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -76,8 +77,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-6">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <CloudSnow className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold text-foreground">Snow Tracker</span>
+          <img src={winterwatchLogo} alt="WinterWatch-Pro" className="h-8 w-8 rounded-full object-cover" />
+          <span className="text-xl font-bold text-foreground">WinterWatch-Pro</span>
         </Link>
       </div>
 
@@ -167,8 +168,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         </Sheet>
         
         <div className="flex items-center gap-2">
-          <CloudSnow className="h-6 w-6 text-primary" />
-          <span className="font-bold">Snow Tracker</span>
+          <img src={winterwatchLogo} alt="WinterWatch-Pro" className="h-6 w-6 rounded-full object-cover" />
+          <span className="font-bold">WinterWatch-Pro</span>
         </div>
 
         <div className="ml-auto flex items-center gap-2">

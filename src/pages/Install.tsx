@@ -1,8 +1,9 @@
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CloudSnow, Download, Share, Plus, CheckCircle2, Smartphone, Monitor, ArrowRight } from 'lucide-react';
+import { Download, Share, Plus, CheckCircle2, Smartphone, Monitor, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import winterwatchLogo from '@/assets/winterwatch-pro-logo.png';
 
 const Install = () => {
   const { isInstallable, isInstalled, isIOS, promptInstall, canInstall } = usePWAInstall();
@@ -24,7 +25,7 @@ const Install = () => {
             </div>
             <CardTitle className="text-2xl">Already Installed!</CardTitle>
             <CardDescription>
-              Snow Tracker Pro is already installed on your device.
+              WinterWatch-Pro is already installed on your device.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -47,10 +48,10 @@ const Install = () => {
     <div className="min-h-screen bg-gradient-dark flex items-center justify-center p-4">
       <Card className="w-full max-w-md glass">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10">
-            <CloudSnow className="h-12 w-12 text-primary" />
+          <div className="mx-auto mb-4">
+            <img src={winterwatchLogo} alt="WinterWatch-Pro" className="h-16 w-16 rounded-full object-cover" />
           </div>
-          <CardTitle className="text-2xl">Install Snow Tracker Pro</CardTitle>
+          <CardTitle className="text-2xl">Install WinterWatch-Pro</CardTitle>
           <CardDescription>
             Add to your home screen for quick access and offline functionality
           </CardDescription>
