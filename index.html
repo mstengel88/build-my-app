@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     
     <!-- Preconnect hints for faster resource loading -->
     <link rel="preconnect" href="https://cdn.gpteng.co" crossorigin />
@@ -14,13 +14,23 @@
     <meta name="author" content="WinterWatch-Pro" />
     
     <!-- Theme Color for browser chrome -->
-    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="theme-color" content="#0ea5e9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     
     <!-- iOS PWA Support -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="WinterWatch" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon.png" />
+    
+    <!-- iOS Specific - Prevent phone number detection -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Prevent iOS text size adjust -->
+    <meta name="text-size-adjust" content="100%" />
     
     <!-- Android PWA Support -->
     <meta name="mobile-web-app-capable" content="yes" />
