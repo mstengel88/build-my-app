@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DataTable, StatusBadge, Column } from '@/components/management/DataTable';
+import { CSVImport } from '@/components/management/CSVImport';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Building2, Phone, Mail } from 'lucide-react';
+import { MapPin, Building2, Phone, Mail, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { AccountPriority, AccountStatus, ServiceType } from '@/lib/supabase-types';
 
@@ -187,6 +188,27 @@ const Accounts = () => {
     saveMutation.mutate(formData);
   };
 
+  const handleCSVImport = async (data: Record<string, any>[]) => {
+    const { error } = await supabase.from('accounts').insert(data as any);
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+  };
+
+  const csvColumns = [
+    { key: 'name', label: 'Name', required: true },
+    { key: 'address', label: 'Address', required: true },
+    { key: 'city', label: 'City' },
+    { key: 'state', label: 'State' },
+    { key: 'zip', label: 'ZIP' },
+    { key: 'contact_name', label: 'Contact Name' },
+    { key: 'contact_phone', label: 'Contact Phone' },
+    { key: 'contact_email', label: 'Contact Email' },
+    { key: 'service_type', label: 'Service Type' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'status', label: 'Status' },
+    { key: 'notes', label: 'Notes' },
+  ];
+
   const columns: Column<Account>[] = [
     {
       key: 'name',
@@ -272,9 +294,22 @@ const Accounts = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
-          <p className="text-muted-foreground">Manage customer accounts and service locations</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
+            <p className="text-muted-foreground">Manage customer accounts and service locations</p>
+          </div>
+          <CSVImport
+            tableName="Accounts"
+            columns={csvColumns}
+            onImport={handleCSVImport}
+            trigger={
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Import CSV
+              </Button>
+            }
+          />
         </div>
 
         {/* Stats */}
