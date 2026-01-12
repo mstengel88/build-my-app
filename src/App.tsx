@@ -11,6 +11,9 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import ShovelCrew from "./pages/ShovelCrew";
 import ClientPortal from "./pages/ClientPortal";
+import Accounts from "./pages/Accounts";
+import Equipment from "./pages/Equipment";
+import Employees from "./pages/Employees";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +66,30 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager', 'shovel_crew']}>
                   <ShovelCrew />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounts"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Accounts />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/equipment"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Equipment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employees"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                  <Employees />
                 </ProtectedRoute>
               }
             />
