@@ -13,6 +13,7 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
   isStaff: () => boolean;
@@ -118,6 +119,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error: error as Error | null };
   };
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/redirect`,
+      },
+    });
+    return { error: error as Error | null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setRoles([]);
@@ -146,6 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isSuperAdmin,
         signIn,
         signUp,
+        signInWithGoogle,
         signOut,
         hasRole,
         isStaff,
