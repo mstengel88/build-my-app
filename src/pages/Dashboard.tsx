@@ -317,13 +317,14 @@ const Dashboard = () => {
   }, [nearestAccount, selectedAccount, position]);
 
   // Form validation - all fields required except notes and photo
+  // Salt Used is optional for "plow" only, Snow Depth is optional for "salt" only
   const isFormValid = 
     selectedAccount &&
     serviceType &&
     selectedEquipment.length > 0 &&
     selectedEmployees.length > 0 &&
-    snowDepth.trim() !== '' &&
-    saltUsed.trim() !== '' &&
+    (serviceType === 'salt' || snowDepth.trim() !== '') &&
+    (serviceType === 'plow' || saltUsed.trim() !== '') &&
     temperature.trim() !== '' &&
     weatherDescription.trim() !== '' &&
     windSpeed.trim() !== '';
