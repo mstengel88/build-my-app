@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import {
   Clock,
   Play,
@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   Camera,
   Image as ImageIcon,
-  Users,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { AccountWithDistance } from '@/lib/supabase-types';
@@ -40,6 +39,15 @@ const Dashboard = () => {
   const checkInState = useCheckInState('plow');
   const { position, loading: gpsLoading, getPosition } = useGeolocation();
   const { toast } = useToast();
+  const gpsInitialized = useRef(false);
+
+  // Auto-activate GPS on page load
+  useEffect(() => {
+    if (!gpsInitialized.current) {
+      gpsInitialized.current = true;
+      getPosition();
+    }
+  }, [getPosition]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
@@ -52,7 +60,7 @@ const Dashboard = () => {
   const [weatherDescription, setWeatherDescription] = useState('');
   const [windSpeed, setWindSpeed] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedEquipment, setSelectedEquipment] = useState<string>('');
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [currentTemp, setCurrentTemp] = useState<number | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -301,6 +309,13 @@ const Dashboard = () => {
 
   const nearestAccount = sortedAccounts[0];
 
+  // Auto-select nearest account when GPS position updates
+  useEffect(() => {
+    if (nearestAccount && !selectedAccount && position) {
+      setSelectedAccount(nearestAccount.id);
+    }
+  }, [nearestAccount, selectedAccount, position]);
+
   const handleCheckIn = async () => {
     if (!selectedAccount) {
       toast({
@@ -398,22 +413,16 @@ const Dashboard = () => {
       }
 
       // Link selected equipment to work log
-      if (selectedEquipment && workLog) {
-        await supabase
-          .from('work_log_equipment')
-          .insert({
-            work_log_id: workLog.id,
-            equipment_id: selectedEquipment,
-          });
+      if (selectedEquipment.length > 0 && workLog) {
+        for (const eqId of selectedEquipment) {
+          await supabase
+            .from('work_log_equipment')
+            .insert({
+              work_log_id: workLog.id,
+              equipment_id: eqId,
+            });
+        }
       }
-
-      toast({
-        title: 'Service logged!',
-        description: `Service completed in ${durationMinutes} minutes.`,
-      });
-
-      // Reset form and invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['todayStats'] });
       queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       checkInState.checkOut();
       setSelectedAccount('');
@@ -424,7 +433,7 @@ const Dashboard = () => {
       setWeatherDescription('');
       setWindSpeed('');
       setNotes('');
-      setSelectedEquipment('');
+      setSelectedEquipment([]);
       setSelectedEmployees([]);
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -779,67 +788,97 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Equipment */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">Equipment</Label>
-              <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-                <SelectTrigger className="bg-card border-border h-11">
-                  <SelectValue placeholder="Select equipment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {equipment.map((eq) => (
-                    <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Team Members */}
-            <div className="space-y-2">
-              <Label className="text-sm flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Team Members
-              </Label>
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <ScrollArea className="max-h-32">
-                  <div className="space-y-2">
-                    {employees.map((emp) => {
-                      const isSelected = selectedEmployees.includes(emp.id);
+            {/* Equipment & Employees Side by Side */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Equipment</Label>
+                <Select 
+                  value={selectedEquipment[0] || ''} 
+                  onValueChange={(value) => {
+                    if (value && !selectedEquipment.includes(value)) {
+                      setSelectedEquipment([...selectedEquipment, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-card border-border h-11">
+                    <SelectValue placeholder="Select equipment..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    {equipment.map((eq) => (
+                      <SelectItem key={eq.id} value={eq.id}>
+                        <div className="flex items-center gap-2">
+                          {selectedEquipment.includes(eq.id) && (
+                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                          )}
+                          {eq.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedEquipment.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedEquipment.map((eqId) => {
+                      const eq = equipment.find(e => e.id === eqId);
                       return (
-                        <label
-                          key={emp.id}
-                          className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
-                            isSelected ? 'bg-primary/20 border border-primary/30' : 'hover:bg-muted/50'
-                          }`}
+                        <Badge 
+                          key={eqId} 
+                          variant="secondary" 
+                          className="text-xs cursor-pointer"
+                          onClick={() => setSelectedEquipment(selectedEquipment.filter(id => id !== eqId))}
                         >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedEmployees([...selectedEmployees, emp.id]);
-                              } else {
-                                setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
-                              }
-                            }}
-                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                          />
-                          <span className="text-sm">{emp.name}</span>
-                        </label>
+                          {eq?.name} ×
+                        </Badge>
                       );
                     })}
-                    {employees.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        No plow crew employees found
-                      </p>
-                    )}
                   </div>
-                </ScrollArea>
+                )}
               </div>
-              {selectedEmployees.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedEmployees.length} team member{selectedEmployees.length > 1 ? 's' : ''} selected
-                </p>
-              )}
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">Employees</Label>
+                <Select 
+                  value={selectedEmployees[0] || ''} 
+                  onValueChange={(value) => {
+                    if (value && !selectedEmployees.includes(value)) {
+                      setSelectedEmployees([...selectedEmployees, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-card border-border h-11">
+                    <SelectValue placeholder="Select employees..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border z-50">
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        <div className="flex items-center gap-2">
+                          {selectedEmployees.includes(emp.id) && (
+                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                          )}
+                          {emp.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedEmployees.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedEmployees.map((empId) => {
+                      const emp = employees.find(e => e.id === empId);
+                      return (
+                        <Badge 
+                          key={empId} 
+                          variant="secondary" 
+                          className="text-xs cursor-pointer"
+                          onClick={() => setSelectedEmployees(selectedEmployees.filter(id => id !== empId))}
+                        >
+                          {emp?.name} ×
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Snow Depth & Salt Used */}
