@@ -18,6 +18,7 @@ import TimeClock from "./pages/TimeClock";
 import WorkLogs from "./pages/WorkLogs";
 import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
+import RoutePlanner from "./pages/RoutePlanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -126,6 +127,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'manager']}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/route-planner"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'manager', 'driver']}>
+                  <RoutePlanner />
                 </ProtectedRoute>
               }
             />
