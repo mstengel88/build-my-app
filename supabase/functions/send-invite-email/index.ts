@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (newUserId) {
       const { error: roleError } = await supabase
         .from("user_roles")
-        .insert({ user_id: newUserId, role });
+        .upsert({ user_id: newUserId, role }, { onConflict: "user_id,role" });
 
       if (roleError) {
         console.error("Role assignment error:", roleError);
@@ -128,6 +128,28 @@ const handler = async (req: Request): Promise<Response> => {
     const appName = "WinterWatch-Pro";
     const senderEmail = Deno.env.get("SENDER_EMAIL") || "onboarding@resend.dev";
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
+    if (!inviteLink) {
+      return new Response(JSON.stringify({ error: "Failed to generate invite link" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!resendApiKey) {
+      return new Response(
+        JSON.stringify({
+          error: "Email provider is not configured (missing RESEND_API_KEY)",
+          inviteLink,
+          userId: newUserId,
+          emailSent: false,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -181,13 +203,38 @@ const handler = async (req: Request): Promise<Response> => {
       }),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    const emailResponseText = await emailResponse.text();
+    let emailResponseJson: any = null;
+    try {
+      emailResponseJson = JSON.parse(emailResponseText);
+    } catch {
+      // ignore
+    }
+
+    if (!emailResponse.ok) {
+      console.error("Resend error:", emailResponse.status, emailResponseJson ?? emailResponseText);
+      return new Response(
+        JSON.stringify({
+          error: `Email provider rejected the request (${emailResponse.status})`,
+          details: emailResponseJson ?? emailResponseText,
+          inviteLink,
+          userId: newUserId,
+          emailSent: false,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Invitation sent to ${email}`,
-        userId: newUserId 
+        userId: newUserId,
+        inviteLink,
+        emailSent: true,
       }),
       {
         status: 200,
