@@ -648,7 +648,7 @@ const Dashboard = () => {
 
         {/* Today's Overview */}
         <div>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-foreground/70 uppercase tracking-wider mb-3">
             TODAY'S OVERVIEW
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -714,7 +714,7 @@ const Dashboard = () => {
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Quick Log Entry */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Quick Log Entry</h2>
+            <h2 className="text-xl font-semibold text-foreground">Quick Log Entry</h2>
             
             {/* Nearest Location Banner */}
             {nearestAccount && (
@@ -741,7 +741,7 @@ const Dashboard = () => {
 
             {/* Account Selection */}
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Select Account (verify or change)</Label>
+              <Label className="text-sm text-foreground/70">Select Account (verify or change)</Label>
               <Select value={selectedAccount} onValueChange={setSelectedAccount}>
                 <SelectTrigger className="bg-card border-border">
                   <SelectValue placeholder="Choose a property..." />
