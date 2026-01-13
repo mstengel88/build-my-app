@@ -36,6 +36,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
 import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
+import { downloadReportPDF, printReportPDF } from '@/lib/generateReportPDF';
 
 type DateRange = {
   from: Date;
@@ -277,6 +278,29 @@ const Reports = () => {
     setMinSaltUsed('');
   };
 
+  const getReportData = () => ({
+    workEntries: allWorkEntries,
+    timeClockEntries: timeClockEntries || [],
+    filters: {
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+      logType,
+      selectedAccount,
+      selectedEmployee,
+      selectedServiceType,
+      selectedEquipment,
+    },
+    summaryStats,
+  });
+
+  const handleDownload = () => {
+    downloadReportPDF(getReportData());
+  };
+
+  const handlePrint = () => {
+    printReportPDF(getReportData());
+  };
+
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return '-';
     const hours = Math.floor(minutes / 60);
@@ -315,11 +339,11 @@ const Reports = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="gap-2 flex-1 sm:flex-none">
+            <Button size="sm" className="gap-2 flex-1 sm:flex-none" onClick={handleDownload}>
               <Download className="h-4 w-4" />
-              <span className="hidden xs:inline">Export</span>
+              <span className="hidden xs:inline">Export PDF</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={handlePrint}>
               <Printer className="h-4 w-4" />
               <span className="hidden xs:inline">Print</span>
             </Button>
