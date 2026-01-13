@@ -23,7 +23,7 @@ const Install = () => {
             <div className="mx-auto mb-4 p-4 rounded-full bg-success/10">
               <CheckCircle2 className="h-12 w-12 text-success" />
             </div>
-            <CardTitle className="text-2xl">Already Installed!</CardTitle>
+            <CardTitle className="text-2xl text-foreground">Already Installed!</CardTitle>
             <CardDescription>
               WinterWatch-Pro is already installed on your device.
             </CardDescription>
@@ -51,7 +51,7 @@ const Install = () => {
           <div className="mx-auto mb-4">
             <img src={winterwatchLogo} alt="WinterWatch-Pro" className="h-16 w-16 rounded-full object-cover" />
           </div>
-          <CardTitle className="text-2xl">Install WinterWatch-Pro</CardTitle>
+          <CardTitle className="text-2xl text-foreground">Install WinterWatch-Pro</CardTitle>
           <CardDescription>
             Add to your home screen for quick access and offline functionality
           </CardDescription>

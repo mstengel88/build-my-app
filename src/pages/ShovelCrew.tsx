@@ -524,7 +524,7 @@ const ShovelCrewDashboard = () => {
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Quick Log Entry */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Quick Log Entry</h2>
+            <h2 className="text-lg font-semibold mb-4 text-foreground">Quick Log Entry</h2>
             <div className="space-y-4">
               {/* Nearest Location Banner */}
               {nearestAccount && (
@@ -842,7 +842,7 @@ const ShovelCrewDashboard = () => {
 
           {/* Recent Activity */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">Recent Activity</h2>
+            <h2 className="text-lg font-semibold mb-4 text-foreground">Recent Activity</h2>
             {recentActivity.length === 0 ? (
               <Card className="glass">
                 <CardContent className="p-8 flex flex-col items-center justify-center text-center">
