@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -38,12 +39,17 @@ import {
   FileText,
   Image,
   Plus,
+  Zap,
+  Settings,
+  Loader2,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
 import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
-import { downloadReportPDF, printReportPDF } from '@/lib/generateReportPDF';
+import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
+import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
+import { useToast } from '@/hooks/use-toast';
 
 type DateRange = {
   from: Date;
@@ -86,7 +92,9 @@ type ShovelLogWithDetails = {
 };
 
 const Reports = () => {
-  const { isAdminOrManager } = useAuth();
+  const { isAdminOrManager, user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -95,6 +103,8 @@ const Reports = () => {
   // Dialog states
   const [showAddEntryDialog, setShowAddEntryDialog] = useState(false);
   const [showAddShiftDialog, setShowAddShiftDialog] = useState(false);
+  const [showZapierSettings, setShowZapierSettings] = useState(false);
+  const [isSendingToZapier, setIsSendingToZapier] = useState(false);
   
   // Filter states
   const [logType, setLogType] = useState<string>('all');
@@ -106,7 +116,47 @@ const Reports = () => {
   const [minSnowDepth, setMinSnowDepth] = useState<string>('');
   const [minSaltUsed, setMinSaltUsed] = useState<string>('');
 
-  // Fetch accounts for filter
+  // Fetch Zapier webhook URL from settings
+  const { data: zapierWebhookUrl = '' } = useQuery({
+    queryKey: ['zapierWebhookUrl'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'zapier_webhook_url')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return (data?.value as string) || '';
+    },
+  });
+
+  // Save Zapier webhook URL mutation
+  const saveZapierWebhookMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const { data: existing } = await supabase
+        .from('settings')
+        .select('id')
+        .eq('key', 'zapier_webhook_url')
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('settings')
+          .update({ value: url, updated_by: user?.id, updated_at: new Date().toISOString() })
+          .eq('key', 'zapier_webhook_url');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('settings')
+          .insert({ key: 'zapier_webhook_url', value: url, updated_by: user?.id });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['zapierWebhookUrl'] });
+    },
+  });
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: async () => {
@@ -308,6 +358,86 @@ const Reports = () => {
     printReportPDF(getReportData());
   };
 
+  const sendToZapier = async (type: 'full' | 'worklogs' | 'timeclock') => {
+    if (!zapierWebhookUrl) {
+      toast({
+        title: 'Webhook not configured',
+        description: 'Please set up your Zapier webhook URL first.',
+        variant: 'destructive',
+      });
+      setShowZapierSettings(true);
+      return;
+    }
+
+    setIsSendingToZapier(true);
+    
+    try {
+      const data = getReportData();
+      const reportName = type === 'full' ? 'Full Report' : type === 'worklogs' ? 'Work Logs' : 'Time Clock';
+      
+      // Prepare report data for Zapier
+      const reportPayload = {
+        report_type: type,
+        report_name: `${reportName} - ${format(data.filters.dateFrom, 'MMM d, yyyy')} to ${format(data.filters.dateTo, 'MMM d, yyyy')}`,
+        generated_at: new Date().toISOString(),
+        date_range: {
+          from: data.filters.dateFrom.toISOString(),
+          to: data.filters.dateTo.toISOString(),
+        },
+        summary: data.summaryStats,
+        filters: {
+          log_type: data.filters.logType,
+          account: data.filters.selectedAccount,
+          employee: data.filters.selectedEmployee,
+          service_type: data.filters.selectedServiceType,
+          equipment: data.filters.selectedEquipment,
+        },
+        work_entries_count: data.workEntries.length,
+        time_clock_entries_count: data.timeClockEntries.length,
+        work_entries: type !== 'timeclock' ? data.workEntries.slice(0, 100).map(entry => ({
+          type: entry.type,
+          date: format(new Date(entry.check_in_time), 'yyyy-MM-dd'),
+          check_in: entry.check_in_time,
+          check_out: entry.check_out_time,
+          duration_minutes: entry.duration_minutes,
+          location: entry.accounts?.name || '',
+          service_type: entry.service_type,
+          snow_depth: entry.snow_depth,
+          salt_used: entry.salt_used,
+          crew: entry.crew,
+        })) : [],
+        time_clock_entries: type !== 'worklogs' ? data.timeClockEntries.slice(0, 100).map(entry => ({
+          employee: (entry.employees as any)?.name || '',
+          date: format(new Date(entry.clock_in_time), 'yyyy-MM-dd'),
+          clock_in: entry.clock_in_time,
+          clock_out: entry.clock_out_time,
+          duration_minutes: entry.duration_minutes,
+        })) : [],
+      };
+
+      await fetch(zapierWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        body: JSON.stringify(reportPayload),
+      });
+
+      toast({
+        title: 'Report sent to Zapier',
+        description: 'Check your Zap history to confirm it was triggered.',
+      });
+    } catch (error) {
+      console.error('Error sending to Zapier:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send report to Zapier.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingToZapier(false);
+    }
+  };
+
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return '-';
     const hours = Math.floor(minutes / 60);
@@ -345,7 +475,7 @@ const Reports = () => {
               <p className="text-xs sm:text-sm text-muted-foreground">View, edit, and export work logs</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" className="gap-2 flex-1 sm:flex-none">
@@ -389,6 +519,43 @@ const Reports = () => {
                 <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'timeclock')}>
                   <Clock className="h-4 w-4 mr-2" />
                   Time Clock Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2 flex-1 sm:flex-none bg-warning/10 border-warning/30 hover:bg-warning/20"
+                  disabled={isSendingToZapier}
+                >
+                  {isSendingToZapier ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4 text-warning" />
+                  )}
+                  <span className="hidden xs:inline">Zapier</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => sendToZapier('full')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Send Full Report
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => sendToZapier('worklogs')}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Send Work Logs
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => sendToZapier('timeclock')}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Send Time Clock
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowZapierSettings(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configure Webhook
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -784,6 +951,12 @@ const Reports = () => {
       {/* Dialogs */}
       <AddWorkEntryDialog open={showAddEntryDialog} onOpenChange={setShowAddEntryDialog} />
       <AddShiftDialog open={showAddShiftDialog} onOpenChange={setShowAddShiftDialog} />
+      <ZapierSettingsDialog
+        open={showZapierSettings}
+        onOpenChange={setShowZapierSettings}
+        webhookUrl={zapierWebhookUrl}
+        onSave={(url) => saveZapierWebhookMutation.mutate(url)}
+      />
     </AppLayout>
   );
 };
