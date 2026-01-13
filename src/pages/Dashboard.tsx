@@ -316,6 +316,16 @@ const Dashboard = () => {
     }
   }, [nearestAccount, selectedAccount, position]);
 
+  // Auto-select the current employee when they have an active shift
+  useEffect(() => {
+    if (activeShift && employeeId && employees.length > 0 && selectedEmployees.length === 0) {
+      const currentEmployee = employees.find(emp => emp.id === employeeId);
+      if (currentEmployee) {
+        setSelectedEmployees([employeeId]);
+      }
+    }
+  }, [activeShift, employeeId, employees, selectedEmployees.length]);
+
   // Form validation - all fields required except notes and photo
   // Salt Used is optional for "plow" only, Snow Depth is optional for "salt" only
   const isFormValid = 
