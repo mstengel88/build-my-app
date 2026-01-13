@@ -260,19 +260,38 @@ const Dashboard = () => {
     refetchInterval: 30000,
   });
 
-  // Fetch equipment
+  // Fetch equipment - filter by service capability based on selected service type
   const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
+    queryKey: ['equipment', serviceType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('equipment')
-        .select('id, name')
+        .select('id, name, service_capability')
         .eq('status', 'active');
       
+      // For salt or both service types, only show equipment that can salt
+      if (serviceType === 'salt' || serviceType === 'both') {
+        query = query.in('service_capability', ['salter', 'both']);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
   });
+
+  // Clear selected equipment when service type changes and equipment no longer valid
+  useEffect(() => {
+    if (serviceType === 'salt' || serviceType === 'both') {
+      // Filter out equipment that doesn't have salting capability
+      const validEquipment = selectedEquipment.filter(eqId => 
+        equipment.some(eq => eq.id === eqId && (eq.service_capability === 'salter' || eq.service_capability === 'both'))
+      );
+      if (validEquipment.length !== selectedEquipment.length) {
+        setSelectedEquipment(validEquipment);
+      }
+    }
+  }, [serviceType, equipment, selectedEquipment]);
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
