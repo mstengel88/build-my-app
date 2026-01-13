@@ -852,7 +852,19 @@ const Dashboard = () => {
                           {selectedEquipment.includes(eq.id) && (
                             <CheckCircle2 className="h-3 w-3 text-primary" />
                           )}
-                          {eq.name}
+                          <span>{eq.name}</span>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-[10px] px-1.5 py-0 h-4 ${
+                              eq.service_capability === 'both' 
+                                ? 'border-primary text-primary' 
+                                : eq.service_capability === 'salter'
+                                ? 'border-green-500 text-green-600'
+                                : 'border-blue-500 text-blue-600'
+                            }`}
+                          >
+                            {eq.service_capability === 'both' ? 'Plow+Salt' : eq.service_capability === 'salter' ? 'Salter' : 'Plow'}
+                          </Badge>
                         </div>
                       </SelectItem>
                     ))}
@@ -866,7 +878,13 @@ const Dashboard = () => {
                         <Badge 
                           key={eqId} 
                           variant="secondary" 
-                          className="text-xs cursor-pointer"
+                          className={`text-xs cursor-pointer ${
+                            eq?.service_capability === 'both' 
+                              ? 'bg-primary/10 text-primary border-primary/20' 
+                              : eq?.service_capability === 'salter'
+                              ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                              : 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                          }`}
                           onClick={() => setSelectedEquipment(selectedEquipment.filter(id => id !== eqId))}
                         >
                           {eq?.name} ×
