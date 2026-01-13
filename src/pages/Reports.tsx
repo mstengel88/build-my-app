@@ -12,6 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Table,
   TableBody,
   TableCell,
@@ -23,6 +29,7 @@ import {
   Calendar as CalendarIcon,
   Download,
   Printer,
+  ChevronDown,
   Filter,
   Clock,
   MapPin,
@@ -339,14 +346,52 @@ const Reports = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="gap-2 flex-1 sm:flex-none" onClick={handleDownload}>
-              <Download className="h-4 w-4" />
-              <span className="hidden xs:inline">Export PDF</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none" onClick={handlePrint}>
-              <Printer className="h-4 w-4" />
-              <span className="hidden xs:inline">Print</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="gap-2 flex-1 sm:flex-none">
+                  <Download className="h-4 w-4" />
+                  <span className="hidden xs:inline">Export</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'full')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Full Report
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'worklogs')}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Work Logs Only
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'timeclock')}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Time Clock Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden xs:inline">Print</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'full')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Full Report
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'worklogs')}>
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Work Logs Only
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'timeclock')}>
+                  <Clock className="h-4 w-4 mr-2" />
+                  Time Clock Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
