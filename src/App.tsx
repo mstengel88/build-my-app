@@ -24,7 +24,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const RoutePlanner = lazy(() => import("./pages/RoutePlanner"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Users = lazy(() => import("./pages/Users"));
+
 const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -163,14 +163,8 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/users"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Users />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Redirect /users to /employees for backwards compatibility */}
+              <Route path="/users" element={<Navigate to="/employees" replace />} />
               <Route
                 path="/profile"
                 element={
