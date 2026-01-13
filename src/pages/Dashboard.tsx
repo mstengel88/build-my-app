@@ -648,7 +648,7 @@ const Dashboard = () => {
 
         {/* Today's Overview */}
         <div>
-          <h2 className="text-xs font-semibold text-foreground/70 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">
             TODAY'S OVERVIEW
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -741,7 +741,7 @@ const Dashboard = () => {
 
             {/* Account Selection */}
             <div className="space-y-2">
-              <Label className="text-sm text-foreground/70">Select Account (verify or change)</Label>
+              <Label className="text-sm text-foreground">Select Account (verify or change)</Label>
               <Select value={selectedAccount} onValueChange={setSelectedAccount}>
                 <SelectTrigger className="bg-card border-border">
                   <SelectValue placeholder="Choose a property..." />
