@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2, Search, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { SwipeableCard } from './SwipeableCard';
 
 export interface Column<T> {
   key: keyof T | string;
@@ -108,47 +109,28 @@ export function DataTable<T extends { id: string }>({
           </Card>
         ) : (
           filteredData.map((item) => (
-            <Card key={item.id} className="glass">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-1">
-                    {visibleColumns.map((column) => (
-                      <div key={String(column.key)}>
-                        {column.render
-                          ? column.render(item)
-                          : String(getNestedValue(item, String(column.key)) ?? '')}
-                      </div>
-                    ))}
-                  </div>
-                  {(onEdit || onDelete) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {onEdit && (
-                          <DropdownMenuItem onClick={() => onEdit(item)} className="h-11">
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
-                        {onDelete && (
-                          <DropdownMenuItem
-                            onClick={() => onDelete(item)}
-                            className="text-destructive focus:text-destructive h-11"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+            <SwipeableCard
+              key={item.id}
+              onEdit={onEdit ? () => onEdit(item) : undefined}
+              onDelete={onDelete ? () => onDelete(item) : undefined}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-1">
+                  {visibleColumns.map((column) => (
+                    <div key={String(column.key)}>
+                      {column.render
+                        ? column.render(item)
+                        : String(getNestedValue(item, String(column.key)) ?? '')}
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
+                {(onEdit || onDelete) && (
+                  <div className="text-xs text-muted-foreground shrink-0">
+                    ← Swipe
+                  </div>
+                )}
+              </div>
+            </SwipeableCard>
           ))
         )}
       </div>
