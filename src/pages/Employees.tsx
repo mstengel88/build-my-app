@@ -514,14 +514,14 @@ const Employees = () => {
             <div className="space-y-2">
               <Label htmlFor="user_id">Assign to User</Label>
               <Select
-                value={formData.user_id}
-                onValueChange={(value) => setFormData({ ...formData, user_id: value })}
+                value={formData.user_id || '__none__'}
+                onValueChange={(value) => setFormData({ ...formData, user_id: value === '__none__' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a user (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {users.map((user) => (
                     <SelectItem key={user.user_id} value={user.user_id}>
                       {user.display_name || user.email}
