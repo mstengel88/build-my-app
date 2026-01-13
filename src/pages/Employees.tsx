@@ -4,10 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DataTable, StatusBadge, Column } from '@/components/management/DataTable';
 import { CSVImport } from '@/components/management/CSVImport';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -33,16 +37,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Phone, Shovel, Truck, Upload, UserCheck } from 'lucide-react';
+import { 
+  Users, 
+  Mail, 
+  Phone, 
+  Shovel, 
+  Truck, 
+  Upload, 
+  UserCheck, 
+  Shield, 
+  Loader2, 
+  Save,
+  UserCog
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
-import type { EmployeeRole, EmployeeCategory, EmployeeStatus } from '@/lib/supabase-types';
+import type { EmployeeRole, EmployeeCategory, EmployeeStatus, AppRole } from '@/lib/supabase-types';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserProfile {
+  id: string;
   user_id: string;
   email: string;
   display_name: string | null;
+  is_super_admin: boolean;
+}
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: AppRole;
 }
 
 interface Employee {
@@ -65,6 +90,14 @@ const employeeRoles: { value: EmployeeRole; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
+const AVAILABLE_ROLES: { value: AppRole; label: string; description: string }[] = [
+  { value: 'admin', label: 'Admin', description: 'Full system access' },
+  { value: 'manager', label: 'Manager', description: 'Manage accounts, employees, equipment' },
+  { value: 'driver', label: 'Driver', description: 'Plow truck driver access' },
+  { value: 'shovel_crew', label: 'Shovel Crew', description: 'Sidewalk crew access' },
+  { value: 'client', label: 'Client', description: 'Customer portal access' },
+];
+
 const defaultFormData = {
   name: '',
   email: '',
@@ -76,13 +109,39 @@ const defaultFormData = {
   user_id: '' as string,
 };
 
+const getRoleBadgeVariant = (role: AppRole) => {
+  switch (role) {
+    case 'admin':
+      return 'destructive';
+    case 'manager':
+      return 'default';
+    case 'driver':
+      return 'secondary';
+    case 'shovel_crew':
+      return 'outline';
+    case 'client':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
+};
+
 const Employees = () => {
-  const { toast } = useToast();
+  const { toast: toastHook } = useToast();
+  const { roles: userRolesAuth } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState(defaultFormData);
+  const [activeTab, setActiveTab] = useState('employees');
+
+  // User roles management state
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [editedRoles, setEditedRoles] = useState<AppRole[]>([]);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+
+  const isAdmin = userRolesAuth.includes('admin');
 
   // Fetch employees
   const { data: employees = [], isLoading } = useQuery({
@@ -97,18 +156,94 @@ const Employees = () => {
     },
   });
 
-  // Fetch users for assignment
-  const { data: users = [] } = useQuery({
-    queryKey: ['profiles-for-assignment'],
+  // Fetch users for assignment and user management
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['profiles-for-management'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, email, display_name')
+        .select('id, user_id, email, display_name, is_super_admin')
         .order('email');
       if (error) throw error;
       return data as UserProfile[];
     },
   });
+
+  // Fetch all user roles
+  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
+    queryKey: ['user-roles-management'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('id, user_id, role');
+      if (error) throw error;
+      return data as UserRole[];
+    },
+  });
+
+  // Get roles for a specific user
+  const getUserRoles = (userId: string): AppRole[] => {
+    return userRoles
+      .filter(ur => ur.user_id === userId)
+      .map(ur => ur.role);
+  };
+
+  // Update roles mutation
+  const updateRolesMutation = useMutation({
+    mutationFn: async ({ userId, roles }: { userId: string; roles: AppRole[] }) => {
+      const currentRoles = getUserRoles(userId);
+      const rolesToAdd = roles.filter(r => !currentRoles.includes(r));
+      const rolesToRemove = currentRoles.filter(r => !roles.includes(r));
+
+      if (rolesToRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .in('role', rolesToRemove);
+        if (deleteError) throw deleteError;
+      }
+
+      if (rolesToAdd.length > 0) {
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert(rolesToAdd.map(role => ({ user_id: userId, role })));
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles-management'] });
+      toast.success('Roles updated successfully');
+      setIsRoleDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      console.error('Error updating roles:', error);
+      toast.error('Failed to update roles');
+    },
+  });
+
+  const handleEditRoles = (user: UserProfile) => {
+    setSelectedUser(user);
+    setEditedRoles(getUserRoles(user.user_id));
+    setIsRoleDialogOpen(true);
+  };
+
+  const handleRoleToggle = (role: AppRole) => {
+    setEditedRoles(prev =>
+      prev.includes(role)
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+
+  const handleSaveRoles = () => {
+    if (!selectedUser) return;
+    updateRolesMutation.mutate({
+      userId: selectedUser.user_id,
+      roles: editedRoles,
+    });
+  };
 
   // Create/Update mutation
   const saveMutation = useMutation({
@@ -139,13 +274,13 @@ const Employees = () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setDialogOpen(false);
       resetForm();
-      toast({
+      toastHook({
         title: selectedEmployee ? 'Employee updated' : 'Employee created',
         description: `${formData.name} has been ${selectedEmployee ? 'updated' : 'added'}.`,
       });
     },
     onError: (error) => {
-      toast({
+      toastHook({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
@@ -163,13 +298,13 @@ const Employees = () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setDeleteDialogOpen(false);
       setSelectedEmployee(null);
-      toast({
+      toastHook({
         title: 'Employee deleted',
         description: 'The employee has been removed.',
       });
     },
     onError: (error) => {
-      toast({
+      toastHook({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
@@ -213,7 +348,6 @@ const Employees = () => {
   };
 
   const handleCSVImport = async (data: Record<string, any>[]) => {
-    // Apply defaults for required fields
     const dataWithDefaults = data.map(row => ({
       ...row,
       role: row.role || 'driver',
@@ -241,49 +375,16 @@ const Employees = () => {
       header: 'Name',
       render: (employee) => (
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
             <Users className="h-4 w-4 text-primary" />
           </div>
-          <span className="font-medium">{employee.name}</span>
+          <span className="font-medium truncate">{employee.name}</span>
         </div>
       ),
-    },
-    {
-      key: 'contact',
-      header: 'Contact',
-      render: (employee) => (
-        <div className="text-sm space-y-0.5">
-          {employee.email && (
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Mail className="h-3 w-3" />
-              {employee.email}
-            </div>
-          )}
-          {employee.phone && (
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Phone className="h-3 w-3" />
-              {employee.phone}
-            </div>
-          )}
-          {!employee.email && !employee.phone && <span className="text-muted-foreground">-</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'role',
-      header: 'Role',
-      render: (employee) => {
-        const roleLabel = employeeRoles.find((r) => r.value === employee.role)?.label || employee.role;
-        return (
-          <Badge variant="outline" className="capitalize">
-            {roleLabel}
-          </Badge>
-        );
-      },
     },
     {
       key: 'category',
-      header: 'Category',
+      header: 'Type',
       render: (employee) => {
         const isPlow = employee.category === 'plow';
         return (
@@ -293,36 +394,9 @@ const Employees = () => {
             ) : (
               <Shovel className="h-4 w-4 text-shovel" />
             )}
-            <Badge variant={isPlow ? 'default' : 'secondary'} className={isPlow ? '' : 'bg-shovel text-shovel-foreground'}>
+            <Badge variant={isPlow ? 'default' : 'secondary'} className={`text-xs ${!isPlow ? 'bg-shovel text-shovel-foreground' : ''}`}>
               {isPlow ? 'Plow' : 'Shovel'}
             </Badge>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'hire_date',
-      header: 'Hire Date',
-      render: (employee) => (
-        <span className="text-sm">
-          {employee.hire_date ? format(new Date(employee.hire_date), 'MMM d, yyyy') : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'user_id',
-      header: 'Linked User',
-      render: (employee) => {
-        if (!employee.user_id) {
-          return <span className="text-muted-foreground text-sm">Not linked</span>;
-        }
-        const linkedUser = users.find(u => u.user_id === employee.user_id);
-        return (
-          <div className="flex items-center gap-1 text-sm">
-            <UserCheck className="h-3 w-3 text-success" />
-            <span className="truncate max-w-[120px]" title={linkedUser?.email}>
-              {linkedUser?.display_name || linkedUser?.email || 'Linked'}
-            </span>
           </div>
         );
       },
@@ -341,76 +415,194 @@ const Employees = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Employees</h1>
-            <p className="text-muted-foreground">Manage staff and crew members</p>
-          </div>
-          <CSVImport
-            tableName="Employees"
-            columns={csvColumns}
-            onImport={handleCSVImport}
-            trigger={
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Import CSV
-              </Button>
-            }
-          />
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Users className="h-6 w-6" />
+            Team Management
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage employees and user accounts
+          </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="glass">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{employees.length}</div>
-              <div className="text-xs text-muted-foreground">Total Employees</div>
-            </CardContent>
-          </Card>
-          <Card className="glass">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-success">{activeCount}</div>
-              <div className="text-xs text-muted-foreground">Active</div>
-            </CardContent>
-          </Card>
-          <Card className="glass">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">{plowCount}</div>
-              <div className="text-xs text-muted-foreground">Plow Crew</div>
-            </CardContent>
-          </Card>
-          <Card className="glass">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-shovel">{shovelCount}</div>
-              <div className="text-xs text-muted-foreground">Shovel Crew</div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full grid grid-cols-2 h-12">
+            <TabsTrigger value="employees" className="text-sm h-10">
+              <Users className="h-4 w-4 mr-2" />
+              Employees
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="users" className="text-sm h-10">
+                <UserCog className="h-4 w-4 mr-2" />
+                Users & Roles
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        {/* Data Table */}
-        <Card className="glass">
-          <CardContent className="p-6">
-            <DataTable
-              title="Employee"
-              data={employees}
-              columns={columns}
-              isLoading={isLoading}
-              onAdd={handleAdd}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              searchPlaceholder="Search employees..."
-            />
-          </CardContent>
-        </Card>
+          {/* Employees Tab */}
+          <TabsContent value="employees" className="mt-4 space-y-4">
+            {/* Stats - Horizontal scroll on mobile */}
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4">
+              <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl font-bold text-foreground">{employees.length}</div>
+                  <div className="text-xs text-muted-foreground">Total</div>
+                </CardContent>
+              </Card>
+              <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl font-bold text-success">{activeCount}</div>
+                  <div className="text-xs text-muted-foreground">Active</div>
+                </CardContent>
+              </Card>
+              <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl font-bold text-primary">{plowCount}</div>
+                  <div className="text-xs text-muted-foreground">Plow</div>
+                </CardContent>
+              </Card>
+              <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl font-bold text-shovel">{shovelCount}</div>
+                  <div className="text-xs text-muted-foreground">Shovel</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <CSVImport
+                tableName="Employees"
+                columns={csvColumns}
+                onImport={handleCSVImport}
+                trigger={
+                  <Button variant="outline" size="sm" className="h-10">
+                    <Upload className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Import</span>
+                  </Button>
+                }
+              />
+            </div>
+
+            {/* Data Table */}
+            <Card className="glass">
+              <CardContent className="p-3 sm:p-6">
+                <DataTable
+                  title="Employee"
+                  data={employees}
+                  columns={columns}
+                  isLoading={isLoading}
+                  onAdd={handleAdd}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  searchPlaceholder="Search employees..."
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Users Tab */}
+          {isAdmin && (
+            <TabsContent value="users" className="mt-4 space-y-4">
+              {/* User Stats */}
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3">
+                <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-xl sm:text-2xl font-bold text-foreground">{users.length}</div>
+                    <div className="text-xs text-muted-foreground">Total Users</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-xl sm:text-2xl font-bold text-destructive">
+                      {users.filter(u => getUserRoles(u.user_id).includes('admin')).length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Admins</div>
+                  </CardContent>
+                </Card>
+                <Card className="glass shrink-0 w-[140px] sm:w-auto">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="text-xl sm:text-2xl font-bold text-primary">
+                      {users.filter(u => getUserRoles(u.user_id).includes('manager')).length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Managers</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Users List - Mobile optimized */}
+              <Card className="glass">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base text-foreground">System Users</CardTitle>
+                  <CardDescription className="text-xs">
+                    Tap a user to edit their roles
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {usersLoading || rolesLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <ScrollArea className="max-h-[60vh]">
+                      <div className="divide-y divide-border">
+                        {users.map(user => {
+                          const roles = getUserRoles(user.user_id);
+                          return (
+                            <button
+                              key={user.id}
+                              onClick={() => handleEditRoles(user)}
+                              className="w-full p-4 text-left hover:bg-muted/50 transition-colors active:bg-muted"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-foreground truncate">
+                                    {user.display_name || 'No name'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {user.email}
+                                  </p>
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {user.is_super_admin && (
+                                      <Badge variant="destructive" className="text-xs gap-1">
+                                        <Shield className="h-3 w-3" />
+                                        Super
+                                      </Badge>
+                                    )}
+                                    {roles.length > 0 ? (
+                                      roles.map(role => (
+                                        <Badge key={role} variant={getRoleBadgeVariant(role)} className="text-xs">
+                                          {role.replace('_', ' ')}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">No roles</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <UserCog className="h-5 w-5 text-muted-foreground shrink-0" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
 
-      {/* Add/Edit Dialog */}
+      {/* Add/Edit Employee Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedEmployee ? 'Edit Employee' : 'Add Employee'}</DialogTitle>
+            <DialogTitle className="text-foreground">{selectedEmployee ? 'Edit Employee' : 'Add Employee'}</DialogTitle>
             <DialogDescription>
               {selectedEmployee ? 'Update employee details' : 'Add a new team member'}
             </DialogDescription>
@@ -423,6 +615,7 @@ const Employees = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                className="h-12"
               />
             </div>
 
@@ -433,6 +626,7 @@ const Employees = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="h-12"
               />
             </div>
 
@@ -443,17 +637,18 @@ const Employees = () => {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="h-12"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value) => setFormData({ ...formData, role: value as EmployeeRole })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -472,7 +667,7 @@ const Employees = () => {
                   value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value as EmployeeCategory })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -483,7 +678,7 @@ const Employees = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="hire_date">Hire Date</Label>
                 <Input
@@ -491,6 +686,7 @@ const Employees = () => {
                   type="date"
                   value={formData.hire_date}
                   onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+                  className="h-12"
                 />
               </div>
 
@@ -500,7 +696,7 @@ const Employees = () => {
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value as EmployeeStatus })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -517,7 +713,7 @@ const Employees = () => {
                 value={formData.user_id || '__none__'}
                 onValueChange={(value) => setFormData({ ...formData, user_id: value === '__none__' ? '' : value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select a user (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -530,15 +726,15 @@ const Employees = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Link this employee to a user account for login access
+                Link this employee to a user account
               </p>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="h-12 w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit" disabled={saveMutation.isPending}>
+              <Button type="submit" disabled={saveMutation.isPending} className="h-12 w-full sm:w-auto">
                 {saveMutation.isPending ? 'Saving...' : selectedEmployee ? 'Update' : 'Create'}
               </Button>
             </DialogFooter>
@@ -548,24 +744,84 @@ const Employees = () => {
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">Delete Employee</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{selectedEmployee?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="h-12 w-full sm:w-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedEmployee && deleteMutation.mutate(selectedEmployee.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 h-12 w-full sm:w-auto"
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Roles Dialog */}
+      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Edit User Roles</DialogTitle>
+            <DialogDescription>
+              {selectedUser?.display_name || selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            {AVAILABLE_ROLES.map(role => (
+              <label
+                key={role.value}
+                className={`flex items-start space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                  editedRoles.includes(role.value) ? 'bg-primary/10 border border-primary/30' : 'bg-muted/30 hover:bg-muted/50'
+                }`}
+              >
+                <Checkbox
+                  id={role.value}
+                  checked={editedRoles.includes(role.value)}
+                  onCheckedChange={() => handleRoleToggle(role.value)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {role.label}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {role.description}
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsRoleDialogOpen(false)}
+              className="h-12 w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveRoles}
+              disabled={updateRolesMutation.isPending}
+              className="h-12 w-full sm:w-auto"
+            >
+              {updateRolesMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Roles
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ export interface Column<T> {
   header: string;
   render?: (item: T) => React.ReactNode;
   sortable?: boolean;
+  hideOnMobile?: boolean;
 }
 
 interface DataTableProps<T extends { id: string }> {
@@ -63,29 +65,96 @@ export function DataTable<T extends { id: string }>({
     }, obj);
   };
 
+  // Filter columns for mobile view
+  const visibleColumns = columns.filter(col => !col.hideOnMobile);
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex gap-2 sm:gap-4">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-11"
           />
         </div>
         {onAdd && (
-          <Button onClick={onAdd}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add {title}
+          <Button onClick={onAdd} className="h-11 shrink-0">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add {title}</span>
           </Button>
         )}
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border border-border overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="block sm:hidden space-y-2">
+        {isLoading ? (
+          <Card className="glass">
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-muted-foreground">Loading...</span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredData.length === 0 ? (
+          <Card className="glass">
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No results found
+            </CardContent>
+          </Card>
+        ) : (
+          filteredData.map((item) => (
+            <Card key={item.id} className="glass">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    {visibleColumns.map((column) => (
+                      <div key={String(column.key)}>
+                        {column.render
+                          ? column.render(item)
+                          : String(getNestedValue(item, String(column.key)) ?? '')}
+                      </div>
+                    ))}
+                  </div>
+                  {(onEdit || onDelete) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(item)} className="h-11">
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(item)}
+                            className="text-destructive focus:text-destructive h-11"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden sm:block rounded-md border border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -159,7 +228,7 @@ export function DataTable<T extends { id: string }>({
       </div>
 
       {/* Footer */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-xs sm:text-sm text-muted-foreground">
         Showing {filteredData.length} of {data.length} results
       </div>
     </div>
@@ -175,7 +244,7 @@ export function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <Badge variant={variants[status] || 'outline'} className="capitalize">
+    <Badge variant={variants[status] || 'outline'} className="capitalize text-xs">
       {status}
     </Badge>
   );
