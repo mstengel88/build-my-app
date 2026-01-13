@@ -59,7 +59,7 @@ const dropdownNavItems: NavItem[] = [
   { title: 'Employees', href: '/employees', icon: Users, roles: ['admin', 'manager'] },
   { title: 'Time Clock', href: '/time-clock', icon: Clock, roles: ['admin', 'manager', 'driver', 'shovel_crew'] },
   { title: 'Route Planner', href: '/route-planner', icon: Route, roles: ['admin', 'manager', 'driver'] },
-  { title: 'Snow Forecast', href: '/snow-forecast', icon: CloudSnow, roles: ['admin', 'manager'] },
+  
   { title: 'Admin', href: '/admin', icon: LayoutDashboard, roles: ['admin', 'manager'] },
   { title: 'Audit Log', href: '/audit-log', icon: Database, roles: ['admin'] },
 ];
