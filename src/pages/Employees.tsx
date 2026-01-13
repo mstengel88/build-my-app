@@ -34,10 +34,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Users, Mail, Phone, Shovel, Truck, Upload } from 'lucide-react';
+import { Users, Mail, Phone, Shovel, Truck, Upload, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { EmployeeRole, EmployeeCategory, EmployeeStatus } from '@/lib/supabase-types';
+
+interface UserProfile {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+}
 
 interface Employee {
   id: string;
@@ -67,6 +73,7 @@ const defaultFormData = {
   category: 'plow' as EmployeeCategory,
   status: 'active' as EmployeeStatus,
   hire_date: '',
+  user_id: '' as string,
 };
 
 const Employees = () => {
@@ -90,6 +97,19 @@ const Employees = () => {
     },
   });
 
+  // Fetch users for assignment
+  const { data: users = [] } = useQuery({
+    queryKey: ['profiles-for-assignment'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, email, display_name')
+        .order('email');
+      if (error) throw error;
+      return data as UserProfile[];
+    },
+  });
+
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -101,6 +121,7 @@ const Employees = () => {
         category: data.category,
         status: data.status,
         hire_date: data.hire_date || null,
+        user_id: data.user_id || null,
       };
 
       if (selectedEmployee) {
@@ -176,6 +197,7 @@ const Employees = () => {
       category: employee.category as EmployeeCategory,
       status: employee.status as EmployeeStatus,
       hire_date: employee.hire_date || '',
+      user_id: employee.user_id || '',
     });
     setDialogOpen(true);
   };
@@ -286,6 +308,24 @@ const Employees = () => {
           {employee.hire_date ? format(new Date(employee.hire_date), 'MMM d, yyyy') : '-'}
         </span>
       ),
+    },
+    {
+      key: 'user_id',
+      header: 'Linked User',
+      render: (employee) => {
+        if (!employee.user_id) {
+          return <span className="text-muted-foreground text-sm">Not linked</span>;
+        }
+        const linkedUser = users.find(u => u.user_id === employee.user_id);
+        return (
+          <div className="flex items-center gap-1 text-sm">
+            <UserCheck className="h-3 w-3 text-success" />
+            <span className="truncate max-w-[120px]" title={linkedUser?.email}>
+              {linkedUser?.display_name || linkedUser?.email || 'Linked'}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -469,6 +509,29 @@ const Employees = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="user_id">Assign to User</Label>
+              <Select
+                value={formData.user_id}
+                onValueChange={(value) => setFormData({ ...formData, user_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a user (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.user_id} value={user.user_id}>
+                      {user.display_name || user.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Link this employee to a user account for login access
+              </p>
             </div>
 
             <DialogFooter>
