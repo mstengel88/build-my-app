@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,12 +45,14 @@ import {
   Loader2,
   Upload,
   FileSpreadsheet,
+  CheckSquare,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
 import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
+import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
 import { useToast } from '@/hooks/use-toast';
 import { CSVImport } from '@/components/management/CSVImport';
@@ -108,6 +111,12 @@ const Reports = () => {
   const [showAddShiftDialog, setShowAddShiftDialog] = useState(false);
   const [showZapierSettings, setShowZapierSettings] = useState(false);
   const [isSendingToZapier, setIsSendingToZapier] = useState(false);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+  const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
+  
+  // Selection states
+  const [selectedWorkLogs, setSelectedWorkLogs] = useState<Set<string>>(new Set());
+  const [selectedShifts, setSelectedShifts] = useState<Set<string>>(new Set());
   
   // Filter states
   const [logType, setLogType] = useState<string>('all');
@@ -566,6 +575,68 @@ const Reports = () => {
     queryClient.invalidateQueries({ queryKey: ['timeClockReport'] });
   };
 
+  // Selection handlers
+  const toggleWorkLogSelection = (id: string) => {
+    setSelectedWorkLogs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleShiftSelection = (id: string) => {
+    setSelectedShifts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllWorkLogs = () => {
+    if (selectedWorkLogs.size === allWorkEntries.length) {
+      setSelectedWorkLogs(new Set());
+    } else {
+      setSelectedWorkLogs(new Set(allWorkEntries.map(e => e.id)));
+    }
+  };
+
+  const toggleAllShifts = () => {
+    if (timeClockEntries && selectedShifts.size === timeClockEntries.length) {
+      setSelectedShifts(new Set());
+    } else {
+      setSelectedShifts(new Set(timeClockEntries?.map(e => e.id) || []));
+    }
+  };
+
+  const openBulkEditWorkLogs = () => {
+    // Determine if selected entries are plow or shovel
+    const selectedEntries = allWorkEntries.filter(e => selectedWorkLogs.has(e.id));
+    const hasPlow = selectedEntries.some(e => e.type === 'plow');
+    const hasShovel = selectedEntries.some(e => e.type === 'shovel');
+    
+    // If mixed, default to work_logs (plow takes precedence)
+    setBulkEditType(hasPlow ? 'work_logs' : 'shovel_work_logs');
+    setShowBulkEditDialog(true);
+  };
+
+  const openBulkEditShifts = () => {
+    setBulkEditType('time_clock');
+    setShowBulkEditDialog(true);
+  };
+
+  const handleBulkEditSuccess = () => {
+    setSelectedWorkLogs(new Set());
+    setSelectedShifts(new Set());
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -892,18 +963,40 @@ const Reports = () => {
               <Clock className="h-4 w-4" />
               Daily Shifts ({timeClockEntries?.length || 0} shifts)
             </CardTitle>
-            {isAdminOrManager && (
-              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddShiftDialog(true)}>
-                <Plus className="h-3 w-3" />
-                Add Shift
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedShifts.size > 0 && isAdminOrManager && (
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="text-xs gap-1"
+                  onClick={openBulkEditShifts}
+                >
+                  <CheckSquare className="h-3 w-3" />
+                  Edit {selectedShifts.size}
+                </Button>
+              )}
+              {isAdminOrManager && (
+                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddShiftDialog(true)}>
+                  <Plus className="h-3 w-3" />
+                  Add Shift
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isAdminOrManager && (
+                      <TableHead className="w-8">
+                        <Checkbox
+                          checked={timeClockEntries && timeClockEntries.length > 0 && selectedShifts.size === timeClockEntries.length}
+                          onCheckedChange={toggleAllShifts}
+                          aria-label="Select all shifts"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="text-xs">Employee</TableHead>
                     <TableHead className="text-xs">Date</TableHead>
                     <TableHead className="text-xs hidden sm:table-cell">Start</TableHead>
@@ -915,7 +1008,16 @@ const Reports = () => {
                 </TableHeader>
                 <TableBody>
                   {timeClockEntries?.slice(0, 10).map((entry) => (
-                    <TableRow key={entry.id}>
+                    <TableRow key={entry.id} className={selectedShifts.has(entry.id) ? 'bg-muted/50' : ''}>
+                      {isAdminOrManager && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedShifts.has(entry.id)}
+                            onCheckedChange={() => toggleShiftSelection(entry.id)}
+                            aria-label={`Select shift for ${(entry.employees as any)?.name}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium text-xs sm:text-sm">
                         {(entry.employees as any)?.name || 'Unknown'}
                       </TableCell>
@@ -947,7 +1049,7 @@ const Reports = () => {
                   ))}
                   {(!timeClockEntries || timeClockEntries.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                      <TableCell colSpan={isAdminOrManager ? 8 : 7} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
                         No shifts found
                       </TableCell>
                     </TableRow>
@@ -996,18 +1098,40 @@ const Reports = () => {
         <Card className="glass">
           <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4">
             <CardTitle className="text-sm sm:text-base">Work Log Entries ({allWorkEntries.length})</CardTitle>
-            {isAdminOrManager && (
-              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddEntryDialog(true)}>
-                <Plus className="h-3 w-3" />
-                Add Entry
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedWorkLogs.size > 0 && isAdminOrManager && (
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="text-xs gap-1"
+                  onClick={openBulkEditWorkLogs}
+                >
+                  <CheckSquare className="h-3 w-3" />
+                  Edit {selectedWorkLogs.size}
+                </Button>
+              )}
+              {isAdminOrManager && (
+                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddEntryDialog(true)}>
+                  <Plus className="h-3 w-3" />
+                  Add Entry
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isAdminOrManager && (
+                      <TableHead className="w-8">
+                        <Checkbox
+                          checked={allWorkEntries.length > 0 && selectedWorkLogs.size === allWorkEntries.length}
+                          onCheckedChange={toggleAllWorkLogs}
+                          aria-label="Select all work logs"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="text-xs">Type</TableHead>
                     <TableHead className="text-xs">Date</TableHead>
                     <TableHead className="text-xs">In</TableHead>
@@ -1025,7 +1149,16 @@ const Reports = () => {
                 </TableHeader>
                 <TableBody>
                   {allWorkEntries.slice(0, 20).map((entry) => (
-                    <TableRow key={entry.id}>
+                    <TableRow key={entry.id} className={selectedWorkLogs.has(entry.id) ? 'bg-muted/50' : ''}>
+                      {isAdminOrManager && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedWorkLogs.has(entry.id)}
+                            onCheckedChange={() => toggleWorkLogSelection(entry.id)}
+                            aria-label={`Select work log at ${entry.accounts?.name}`}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Badge variant={entry.type === 'plow' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0.5">
                           {entry.type === 'plow' ? 'Plow' : 'Shov'}
@@ -1085,7 +1218,7 @@ const Reports = () => {
                   ))}
                   {allWorkEntries.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={13} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                      <TableCell colSpan={isAdminOrManager ? 14 : 13} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
                         No entries found
                       </TableCell>
                     </TableRow>
@@ -1105,6 +1238,13 @@ const Reports = () => {
         onOpenChange={setShowZapierSettings}
         webhookUrl={zapierWebhookUrl}
         onSave={(url) => saveZapierWebhookMutation.mutate(url)}
+      />
+      <BulkEditDialog
+        open={showBulkEditDialog}
+        onOpenChange={setShowBulkEditDialog}
+        selectedIds={bulkEditType === 'time_clock' ? Array.from(selectedShifts) : Array.from(selectedWorkLogs)}
+        type={bulkEditType}
+        onSuccess={handleBulkEditSuccess}
       />
     </AppLayout>
   );
