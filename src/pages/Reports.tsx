@@ -51,6 +51,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
 import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
+import { EditShiftDialog } from '@/components/reports/EditShiftDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
@@ -109,6 +110,14 @@ const Reports = () => {
   // Dialog states
   const [showAddEntryDialog, setShowAddEntryDialog] = useState(false);
   const [showAddShiftDialog, setShowAddShiftDialog] = useState(false);
+  const [showEditShiftDialog, setShowEditShiftDialog] = useState(false);
+  const [editingShift, setEditingShift] = useState<{
+    id: string;
+    employee_id: string;
+    clock_in_time: string;
+    clock_out_time: string | null;
+    notes: string | null;
+  } | null>(null);
   const [showZapierSettings, setShowZapierSettings] = useState(false);
   const [isSendingToZapier, setIsSendingToZapier] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
@@ -637,6 +646,44 @@ const Reports = () => {
     setSelectedShifts(new Set());
   };
 
+  // Individual shift handlers
+  const handleEditShift = (entry: any) => {
+    setEditingShift({
+      id: entry.id,
+      employee_id: entry.employee_id,
+      clock_in_time: entry.clock_in_time,
+      clock_out_time: entry.clock_out_time,
+      notes: entry.notes,
+    });
+    setShowEditShiftDialog(true);
+  };
+
+  const handleDeleteShift = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this shift?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('time_clock')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Shift deleted',
+        description: 'The shift has been removed.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['timeClockReport'] });
+    } catch (error: any) {
+      console.error('Error deleting shift:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete shift. You may not have permission.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -1037,10 +1084,20 @@ const Reports = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={() => handleEditShift(entry)}
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => handleDeleteShift(entry.id)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -1233,6 +1290,11 @@ const Reports = () => {
       {/* Dialogs */}
       <AddWorkEntryDialog open={showAddEntryDialog} onOpenChange={setShowAddEntryDialog} />
       <AddShiftDialog open={showAddShiftDialog} onOpenChange={setShowAddShiftDialog} />
+      <EditShiftDialog 
+        open={showEditShiftDialog} 
+        onOpenChange={setShowEditShiftDialog} 
+        shift={editingShift} 
+      />
       <ZapierSettingsDialog
         open={showZapierSettings}
         onOpenChange={setShowZapierSettings}
