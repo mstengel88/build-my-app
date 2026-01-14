@@ -42,6 +42,8 @@ import {
   Zap,
   Settings,
   Loader2,
+  Upload,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,7 @@ import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
 import { useToast } from '@/hooks/use-toast';
+import { CSVImport } from '@/components/management/CSVImport';
 
 type DateRange = {
   from: Date;
@@ -461,6 +464,108 @@ const Reports = () => {
     }
   };
 
+  // CSV Export functions
+  const exportWorkLogsCSV = () => {
+    const headers = ['Date', 'Check In', 'Check Out', 'Duration (min)', 'Type', 'Account', 'Service Type', 'Snow Depth', 'Salt Used', 'Temperature', 'Weather', 'Crew', 'Equipment', 'Notes'];
+    const rows = allWorkEntries.map(entry => [
+      format(new Date(entry.check_in_time), 'yyyy-MM-dd'),
+      format(new Date(entry.check_in_time), 'HH:mm'),
+      entry.check_out_time ? format(new Date(entry.check_out_time), 'HH:mm') : '',
+      entry.duration_minutes || '',
+      entry.type,
+      entry.accounts?.name || '',
+      entry.service_type,
+      entry.snow_depth || '',
+      entry.salt_used || '',
+      entry.temperature || '',
+      entry.weather_description || '',
+      entry.crew,
+      entry.equipmentName,
+      entry.notes || '',
+    ]);
+    
+    downloadCSV(headers, rows, `work-logs-${format(dateRange.from, 'yyyy-MM-dd')}-to-${format(dateRange.to, 'yyyy-MM-dd')}.csv`);
+  };
+
+  const exportShiftsCSV = () => {
+    if (!timeClockEntries) return;
+    const headers = ['Date', 'Employee', 'Clock In', 'Clock Out', 'Duration (min)', 'Clock In Location', 'Clock Out Location', 'Notes'];
+    const rows = timeClockEntries.map(entry => [
+      format(new Date(entry.clock_in_time), 'yyyy-MM-dd'),
+      (entry.employees as any)?.name || '',
+      format(new Date(entry.clock_in_time), 'HH:mm'),
+      entry.clock_out_time ? format(new Date(entry.clock_out_time), 'HH:mm') : '',
+      entry.duration_minutes || '',
+      entry.clock_in_latitude && entry.clock_in_longitude ? `${entry.clock_in_latitude},${entry.clock_in_longitude}` : '',
+      entry.clock_out_latitude && entry.clock_out_longitude ? `${entry.clock_out_latitude},${entry.clock_out_longitude}` : '',
+      entry.notes || '',
+    ]);
+    
+    downloadCSV(headers, rows, `daily-shifts-${format(dateRange.from, 'yyyy-MM-dd')}-to-${format(dateRange.to, 'yyyy-MM-dd')}.csv`);
+  };
+
+  const downloadCSV = (headers: string[], rows: any[][], filename: string) => {
+    const escapeCSV = (value: any) => {
+      const str = String(value ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    
+    const csvContent = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  // CSV Import handlers
+  const workLogColumns = [
+    { key: 'account_id', label: 'Account ID', required: true },
+    { key: 'check_in_time', label: 'Check In Time', required: true },
+    { key: 'check_out_time', label: 'Check Out Time' },
+    { key: 'service_type', label: 'Service Type', required: true },
+    { key: 'duration_minutes', label: 'Duration (min)' },
+    { key: 'snow_depth', label: 'Snow Depth' },
+    { key: 'salt_used', label: 'Salt Used' },
+    { key: 'temperature', label: 'Temperature' },
+    { key: 'weather_description', label: 'Weather' },
+    { key: 'notes', label: 'Notes' },
+  ];
+
+  const shiftColumns = [
+    { key: 'employee_id', label: 'Employee ID', required: true },
+    { key: 'clock_in_time', label: 'Clock In Time', required: true },
+    { key: 'clock_out_time', label: 'Clock Out Time' },
+    { key: 'duration_minutes', label: 'Duration (min)' },
+    { key: 'notes', label: 'Notes' },
+  ];
+
+  const handleWorkLogImport = async (data: Record<string, any>[]) => {
+    const processedData = data.map(row => ({
+      ...row,
+      created_by: user?.id,
+      service_type: row.service_type || 'plow',
+    }));
+    
+    const { error } = await supabase.from('work_logs').insert(processedData as any);
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['workLogsReport'] });
+  };
+
+  const handleShiftImport = async (data: Record<string, any>[]) => {
+    const { error } = await supabase.from('time_clock').insert(data as any);
+    if (error) throw error;
+    queryClient.invalidateQueries({ queryKey: ['timeClockReport'] });
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -487,15 +592,24 @@ const Reports = () => {
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'full')}>
                   <FileText className="h-4 w-4 mr-2" />
-                  Full Report
+                  Full Report (PDF)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'worklogs')}>
                   <MapPin className="h-4 w-4 mr-2" />
-                  Work Logs Only
+                  Work Logs (PDF)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'timeclock')}>
                   <Clock className="h-4 w-4 mr-2" />
-                  Time Clock Only
+                  Time Clock (PDF)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={exportWorkLogsCSV}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Work Logs (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportShiftsCSV}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Daily Shifts (CSV)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -557,6 +671,41 @@ const Reports = () => {
                   <Settings className="h-4 w-4 mr-2" />
                   Configure Webhook
                 </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Import dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden xs:inline">Import</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <CSVImport
+                  tableName="Work Logs"
+                  columns={workLogColumns}
+                  onImport={handleWorkLogImport}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Import Work Logs
+                    </DropdownMenuItem>
+                  }
+                />
+                <CSVImport
+                  tableName="Daily Shifts"
+                  columns={shiftColumns}
+                  onImport={handleShiftImport}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Clock className="h-4 w-4 mr-2" />
+                      Import Daily Shifts
+                    </DropdownMenuItem>
+                  }
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
