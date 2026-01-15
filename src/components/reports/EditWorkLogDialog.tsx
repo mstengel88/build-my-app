@@ -146,9 +146,9 @@ export const EditWorkLogDialog = ({ open, onOpenChange, entry }: EditWorkLogDial
 
   const serviceTypeOptions = entry?.type === 'shovel'
     ? [
-        { value: 'sidewalk', label: 'Sidewalk' },
-        { value: 'entrance', label: 'Entrance' },
-        { value: 'full', label: 'Full Service' },
+        { value: 'shovel', label: 'Shovel Only' },
+        { value: 'salt', label: 'Salt Only' },
+        { value: 'both', label: 'Shovel & Salt' },
       ]
     : [
         { value: 'plow', label: 'Plow Only' },
