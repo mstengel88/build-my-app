@@ -127,7 +127,8 @@ const WorkLogs = () => {
         `)
         .gte('check_in_time', start.toISOString())
         .lte('check_in_time', end.toISOString())
-        .order('check_in_time', { ascending: false });
+        .order('check_in_time', { ascending: false })
+        .limit(200);
 
       if (accountFilter !== 'all') {
         query = query.eq('account_id', accountFilter);
@@ -152,7 +153,8 @@ const WorkLogs = () => {
         `)
         .gte('check_in_time', start.toISOString())
         .lte('check_in_time', end.toISOString())
-        .order('check_in_time', { ascending: false });
+        .order('check_in_time', { ascending: false })
+        .limit(200);
 
       if (accountFilter !== 'all') {
         query = query.eq('account_id', accountFilter);

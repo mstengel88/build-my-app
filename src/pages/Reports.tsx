@@ -226,7 +226,8 @@ const Reports = () => {
         `)
         .gte('check_in_time', dateRange.from.toISOString())
         .lte('check_in_time', dateRange.to.toISOString())
-        .order('check_in_time', { ascending: false });
+        .order('check_in_time', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return data as WorkLogWithDetails[];
@@ -246,7 +247,8 @@ const Reports = () => {
         `)
         .gte('check_in_time', dateRange.from.toISOString())
         .lte('check_in_time', dateRange.to.toISOString())
-        .order('check_in_time', { ascending: false });
+        .order('check_in_time', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return data as ShovelLogWithDetails[];
@@ -263,7 +265,8 @@ const Reports = () => {
         .gte('clock_in_time', dateRange.from.toISOString())
         .lte('clock_in_time', dateRange.to.toISOString())
         .not('clock_out_time', 'is', null)
-        .order('clock_in_time', { ascending: false });
+        .order('clock_in_time', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       return data;

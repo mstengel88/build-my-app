@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InviteUserDialog } from '@/components/admin/InviteUserDialog';
+import { DataRetentionSettings } from '@/components/admin/DataRetentionSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
@@ -539,6 +540,9 @@ const Admin = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Data Retention Settings */}
+        <DataRetentionSettings />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
