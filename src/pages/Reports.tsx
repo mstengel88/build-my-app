@@ -1434,7 +1434,7 @@ const Reports = () => {
                         </TableCell>
                       )}
                       <TableCell>
-                        <Badge variant={entry.type === 'plow' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0.5">
+                        <Badge className={`text-[10px] px-1.5 py-0.5 ${entry.type === 'plow' ? 'bg-primary text-primary-foreground' : 'bg-shovel text-shovel-foreground'}`}>
                           {entry.type === 'plow' ? 'Plow' : 'Shov'}
                         </Badge>
                       </TableCell>
