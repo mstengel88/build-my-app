@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils';
 import { AddWorkEntryDialog } from '@/components/reports/AddWorkEntryDialog';
 import { AddShiftDialog } from '@/components/reports/AddShiftDialog';
 import { EditShiftDialog } from '@/components/reports/EditShiftDialog';
+import { EditWorkLogDialog, type EditableWorkEntry } from '@/components/reports/EditWorkLogDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
@@ -118,6 +119,10 @@ const Reports = () => {
     clock_out_time: string | null;
     notes: string | null;
   } | null>(null);
+
+  const [showEditWorkLogDialog, setShowEditWorkLogDialog] = useState(false);
+  const [editingWorkLog, setEditingWorkLog] = useState<EditableWorkEntry | null>(null);
+
   const [showZapierSettings, setShowZapierSettings] = useState(false);
   const [isSendingToZapier, setIsSendingToZapier] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
@@ -660,15 +665,15 @@ const Reports = () => {
 
   const handleDeleteShift = async (id: string) => {
     if (!confirm('Are you sure you want to delete this shift?')) return;
-    
+
     try {
       const { error } = await supabase
         .from('time_clock')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
-      
+
       toast({
         title: 'Shift deleted',
         description: 'The shift has been removed.',
@@ -679,6 +684,53 @@ const Reports = () => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to delete shift. You may not have permission.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Individual work log handlers
+  const handleEditWorkLog = (entry: any) => {
+    setEditingWorkLog({
+      id: entry.id,
+      type: entry.type,
+      account_id: entry.account_id,
+      service_type: entry.service_type,
+      check_in_time: entry.check_in_time,
+      check_out_time: entry.check_out_time,
+      snow_depth: entry.snow_depth,
+      salt_used: entry.salt_used,
+      temperature: entry.temperature,
+      weather_description: entry.weather_description,
+      notes: entry.notes,
+    });
+    setShowEditWorkLogDialog(true);
+  };
+
+  const handleDeleteWorkLog = async (entry: any) => {
+    const label = entry.type === 'shovel' ? 'shovel entry' : 'work log entry';
+    if (!confirm(`Are you sure you want to delete this ${label}?`)) return;
+
+    try {
+      const table = entry.type === 'shovel' ? 'shovel_work_logs' : 'work_logs';
+      const { error } = await supabase
+        .from(table)
+        .delete()
+        .eq('id', entry.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Entry deleted',
+        description: 'The entry has been removed.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['workLogsReport'] });
+      queryClient.invalidateQueries({ queryKey: ['shovelLogsReport'] });
+    } catch (error: any) {
+      console.error('Error deleting work log:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete entry. You may not have permission.',
         variant: 'destructive',
       });
     }
@@ -1263,10 +1315,20 @@ const Reports = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-0.5">
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleEditWorkLog(entry)}
+                          >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => handleDeleteWorkLog(entry)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -1294,6 +1356,14 @@ const Reports = () => {
         open={showEditShiftDialog} 
         onOpenChange={setShowEditShiftDialog} 
         shift={editingShift} 
+      />
+      <EditWorkLogDialog
+        open={showEditWorkLogDialog}
+        onOpenChange={(open) => {
+          setShowEditWorkLogDialog(open);
+          if (!open) setEditingWorkLog(null);
+        }}
+        entry={editingWorkLog}
       />
       <ZapierSettingsDialog
         open={showZapierSettings}
