@@ -1449,7 +1449,7 @@ const Reports = () => {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type, entry.type)}`}>
-                          {entry.type === 'shovel' ? 'Shov' : entry.service_type === 'both' ? 'Both' : entry.service_type === 'salt' ? 'Salt' : 'Plow'}
+                          {entry.service_type === 'both' ? (entry.type === 'shovel' ? 'Shov+Salt' : 'Plow+Salt') : entry.service_type === 'salt' ? 'Salt' : entry.type === 'shovel' ? 'Shovel' : 'Plow'}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
