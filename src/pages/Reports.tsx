@@ -13,6 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -28,10 +33,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Calendar as CalendarIcon,
   Download,
   Printer,
   ChevronDown,
+  ChevronUp,
   Filter,
   Clock,
   MapPin,
@@ -46,6 +58,7 @@ import {
   Upload,
   FileSpreadsheet,
   CheckSquare,
+  StickyNote,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -127,6 +140,7 @@ const Reports = () => {
   const [isSendingToZapier, setIsSendingToZapier] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
+  const [shiftsExpanded, setShiftsExpanded] = useState(true);
   
   // Selection states
   const [selectedWorkLogs, setSelectedWorkLogs] = useState<Set<string>>(new Set());
@@ -1224,118 +1238,153 @@ const Reports = () => {
         </Card>
 
         {/* Daily Shifts */}
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <Clock className="h-4 w-4" />
-              Daily Shifts ({timeClockEntries?.length || 0} shifts)
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {selectedShifts.size > 0 && isAdminOrManager && (
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="text-xs gap-1"
-                  onClick={openBulkEditShifts}
-                >
-                  <CheckSquare className="h-3 w-3" />
-                  Edit {selectedShifts.size}
-                </Button>
-              )}
-              {isAdminOrManager && (
-                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddShiftDialog(true)}>
-                  <Plus className="h-3 w-3" />
-                  Add Shift
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 sm:p-6">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {isAdminOrManager && (
-                      <TableHead className="w-8">
-                        <Checkbox
-                          checked={timeClockEntries && timeClockEntries.length > 0 && selectedShifts.size === timeClockEntries.length}
-                          onCheckedChange={toggleAllShifts}
-                          aria-label="Select all shifts"
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="text-xs">Employee</TableHead>
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">Start</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">End</TableHead>
-                    <TableHead className="text-xs">Hours</TableHead>
-                    <TableHead className="text-xs hidden md:table-cell">Location</TableHead>
-                    <TableHead className="text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timeClockEntries?.slice(0, 10).map((entry) => (
-                    <TableRow key={entry.id} className={selectedShifts.has(entry.id) ? 'bg-muted/50' : ''}>
-                      {isAdminOrManager && (
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedShifts.has(entry.id)}
-                            onCheckedChange={() => toggleShiftSelection(entry.id)}
-                            aria-label={`Select shift for ${(entry.employees as any)?.name}`}
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell className="font-medium text-xs sm:text-sm">
-                        {(entry.employees as any)?.name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-xs">{format(new Date(entry.clock_in_time), 'MM/dd')}</TableCell>
-                      <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_in_time)}</TableCell>
-                      <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_out_time)}</TableCell>
-                      <TableCell>
-                        <span className="text-primary font-medium text-xs sm:text-sm">
-                          {entry.duration_minutes ? (entry.duration_minutes / 60).toFixed(1) + 'h' : '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <Button variant="link" size="sm" className="p-0 h-auto text-primary text-xs">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7"
-                            onClick={() => handleEditShift(entry)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => handleDeleteShift(entry.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!timeClockEntries || timeClockEntries.length === 0) && (
-                    <TableRow>
-                      <TableCell colSpan={isAdminOrManager ? 8 : 7} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
-                        No shifts found
-                      </TableCell>
-                    </TableRow>
+        <Collapsible open={shiftsExpanded} onOpenChange={setShiftsExpanded}>
+          <Card className="glass">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="flex flex-row items-center justify-between py-3 sm:py-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <Clock className="h-4 w-4" />
+                  Daily Shifts ({timeClockEntries?.length || 0} shifts)
+                  {shiftsExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                </CardTitle>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  {selectedShifts.size > 0 && isAdminOrManager && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="text-xs gap-1"
+                      onClick={openBulkEditShifts}
+                    >
+                      <CheckSquare className="h-3 w-3" />
+                      Edit {selectedShifts.size}
+                    </Button>
+                  )}
+                  {isAdminOrManager && (
+                    <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setShowAddShiftDialog(true)}>
+                      <Plus className="h-3 w-3" />
+                      Add Shift
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-0 sm:p-6 pt-0">
+                <div className="overflow-x-auto">
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {isAdminOrManager && (
+                            <TableHead className="w-8">
+                              <Checkbox
+                                checked={timeClockEntries && timeClockEntries.length > 0 && selectedShifts.size === timeClockEntries.length}
+                                onCheckedChange={toggleAllShifts}
+                                aria-label="Select all shifts"
+                              />
+                            </TableHead>
+                          )}
+                          <TableHead className="text-xs">Employee</TableHead>
+                          <TableHead className="text-xs">Date</TableHead>
+                          <TableHead className="text-xs hidden sm:table-cell">Start</TableHead>
+                          <TableHead className="text-xs hidden sm:table-cell">End</TableHead>
+                          <TableHead className="text-xs">Hours</TableHead>
+                          <TableHead className="text-xs hidden md:table-cell">Notes</TableHead>
+                          <TableHead className="text-xs hidden lg:table-cell">Location</TableHead>
+                          <TableHead className="text-xs">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {timeClockEntries?.slice(0, 100).map((entry) => (
+                          <TableRow key={entry.id} className={selectedShifts.has(entry.id) ? 'bg-muted/50' : ''}>
+                            {isAdminOrManager && (
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedShifts.has(entry.id)}
+                                  onCheckedChange={() => toggleShiftSelection(entry.id)}
+                                  aria-label={`Select shift for ${(entry.employees as any)?.name}`}
+                                />
+                              </TableCell>
+                            )}
+                            <TableCell className="font-medium text-xs sm:text-sm">
+                              {(entry.employees as any)?.name || 'Unknown'}
+                            </TableCell>
+                            <TableCell className="text-xs">{format(new Date(entry.clock_in_time), 'MM/dd')}</TableCell>
+                            <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_in_time)}</TableCell>
+                            <TableCell className="text-xs hidden sm:table-cell">{formatTime(entry.clock_out_time)}</TableCell>
+                            <TableCell>
+                              <span className="text-primary font-medium text-xs sm:text-sm">
+                                {entry.duration_minutes ? (entry.duration_minutes / 60).toFixed(1) + 'h' : '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {entry.notes ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 cursor-help max-w-[120px]">
+                                      <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
+                                      <span className="text-xs truncate">{entry.notes}</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[300px] bg-popover text-popover-foreground border">
+                                    <p className="text-sm whitespace-pre-wrap">{entry.notes}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              {entry.clock_in_latitude && entry.clock_in_longitude ? (
+                                <Button variant="link" size="sm" className="p-0 h-auto text-primary text-xs">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7"
+                                  onClick={() => handleEditShift(entry)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={() => handleDeleteShift(entry.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(!timeClockEntries || timeClockEntries.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={isAdminOrManager ? 9 : 8} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                              No shifts found
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TooltipProvider>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Summary Stats Row */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-4">
@@ -1397,121 +1446,141 @@ const Reports = () => {
           </CardHeader>
           <CardContent className="p-0 sm:p-6">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {isAdminOrManager && (
-                      <TableHead className="w-8">
-                        <Checkbox
-                          checked={allWorkEntries.length > 0 && selectedWorkLogs.size === allWorkEntries.length}
-                          onCheckedChange={toggleAllWorkLogs}
-                          aria-label="Select all work logs"
-                        />
-                      </TableHead>
-                    )}
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs">In</TableHead>
-                    <TableHead className="text-xs">Out</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">Dur.</TableHead>
-                    <TableHead className="text-xs">Location</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">Service</TableHead>
-                    <TableHead className="text-xs hidden md:table-cell">Snow/Salt</TableHead>
-                    <TableHead className="text-xs">Weather</TableHead>
-                    <TableHead className="text-xs hidden lg:table-cell">Equipment</TableHead>
-                    <TableHead className="text-xs">Crew</TableHead>
-                    <TableHead className="text-xs hidden lg:table-cell">Photo</TableHead>
-                    <TableHead className="text-xs">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allWorkEntries.slice(0, 20).map((entry) => (
-                    <TableRow key={entry.id} className={selectedWorkLogs.has(entry.id) ? 'bg-muted/50' : ''}>
-                      {isAdminOrManager && (
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedWorkLogs.has(entry.id)}
-                            onCheckedChange={() => toggleWorkLogSelection(entry.id)}
-                            aria-label={`Select work log at ${entry.accounts?.name}`}
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        <Badge className={`text-[10px] px-1.5 py-0.5 ${entry.type === 'plow' ? 'bg-primary text-primary-foreground' : 'bg-shovel text-shovel-foreground'}`}>
-                          {entry.type === 'plow' ? 'Plow' : 'Shov'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs">
-                        {format(new Date(entry.check_in_time), 'MM/dd')}
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_in_time)}</TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_out_time)}</TableCell>
-                      <TableCell className="text-xs hidden sm:table-cell">{formatDuration(entry.duration_minutes)}</TableCell>
-                      <TableCell className="max-w-[80px] sm:max-w-[120px] truncate text-xs">
-                        {entry.accounts?.name || '-'}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type, entry.type)}`}>
-                          {entry.service_type === 'both' ? (entry.type === 'shovel' ? 'Shov+Salt' : 'Plow+Salt') : entry.service_type === 'salt' ? 'Salt' : entry.type === 'shovel' ? 'Shovel' : 'Plow'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
-                        {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lb` : '-'}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div className="flex flex-col">
-                          <span>{entry.temperature ? `${entry.temperature}°F` : '-'}</span>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
-                            {entry.weather_description || ''}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[80px] truncate text-xs hidden lg:table-cell">
-                        {entry.equipmentName}
-                      </TableCell>
-                      <TableCell className="max-w-[100px] truncate text-xs">
-                        {entry.crew}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {entry.photo_url ? (
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <Image className="h-3.5 w-3.5" />
-                          </Button>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleEditWorkLog(entry)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => handleDeleteWorkLog(entry)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {allWorkEntries.length === 0 && (
+              <TooltipProvider>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={isAdminOrManager ? 14 : 13} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
-                        No entries found
-                      </TableCell>
+                      {isAdminOrManager && (
+                        <TableHead className="w-8">
+                          <Checkbox
+                            checked={allWorkEntries.length > 0 && selectedWorkLogs.size === allWorkEntries.length}
+                            onCheckedChange={toggleAllWorkLogs}
+                            aria-label="Select all work logs"
+                          />
+                        </TableHead>
+                      )}
+                      <TableHead className="text-xs">Type</TableHead>
+                      <TableHead className="text-xs">Date</TableHead>
+                      <TableHead className="text-xs">In</TableHead>
+                      <TableHead className="text-xs">Out</TableHead>
+                      <TableHead className="text-xs hidden sm:table-cell">Dur.</TableHead>
+                      <TableHead className="text-xs">Location</TableHead>
+                      <TableHead className="text-xs hidden sm:table-cell">Service</TableHead>
+                      <TableHead className="text-xs hidden md:table-cell">Snow/Salt</TableHead>
+                      <TableHead className="text-xs">Weather</TableHead>
+                      <TableHead className="text-xs hidden lg:table-cell">Equipment</TableHead>
+                      <TableHead className="text-xs">Crew</TableHead>
+                      <TableHead className="text-xs hidden md:table-cell">Notes</TableHead>
+                      <TableHead className="text-xs hidden lg:table-cell">Photo</TableHead>
+                      <TableHead className="text-xs">Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {allWorkEntries.slice(0, 100).map((entry) => (
+                      <TableRow key={entry.id} className={selectedWorkLogs.has(entry.id) ? 'bg-muted/50' : ''}>
+                        {isAdminOrManager && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedWorkLogs.has(entry.id)}
+                              onCheckedChange={() => toggleWorkLogSelection(entry.id)}
+                              aria-label={`Select work log at ${entry.accounts?.name}`}
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Badge className={`text-[10px] px-1.5 py-0.5 ${entry.type === 'plow' ? 'bg-primary text-primary-foreground' : 'bg-shovel text-shovel-foreground'}`}>
+                            {entry.type === 'plow' ? 'Plow' : 'Shov'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {format(new Date(entry.check_in_time), 'MM/dd')}
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_in_time)}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{formatTime(entry.check_out_time)}</TableCell>
+                        <TableCell className="text-xs hidden sm:table-cell">{formatDuration(entry.duration_minutes)}</TableCell>
+                        <TableCell className="max-w-[80px] sm:max-w-[120px] truncate text-xs">
+                          {entry.accounts?.name || '-'}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge className={`text-[10px] px-1.5 py-0.5 ${getServiceBadgeClass(entry.service_type, entry.type)}`}>
+                            {entry.service_type === 'both' ? (entry.type === 'shovel' ? 'Shov+Salt' : 'Plow+Salt') : entry.service_type === 'salt' ? 'Salt' : entry.type === 'shovel' ? 'Shovel' : 'Plow'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs hidden md:table-cell">
+                          {entry.snow_depth ? `${entry.snow_depth}"` : '-'} / {entry.salt_used ? `${entry.salt_used}lb` : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          <div className="flex flex-col">
+                            <span>{entry.temperature ? `${entry.temperature}°F` : '-'}</span>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">
+                              {entry.weather_description || ''}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[80px] truncate text-xs hidden lg:table-cell">
+                          {entry.equipmentName}
+                        </TableCell>
+                        <TableCell className="max-w-[100px] truncate text-xs">
+                          {entry.crew}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {entry.notes ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1 cursor-help max-w-[100px]">
+                                  <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span className="text-xs truncate">{entry.notes}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[300px] bg-popover text-popover-foreground border">
+                                <p className="text-sm whitespace-pre-wrap">{entry.notes}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {entry.photo_url ? (
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <Image className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleEditWorkLog(entry)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive"
+                              onClick={() => handleDeleteWorkLog(entry)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {allWorkEntries.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={isAdminOrManager ? 15 : 14} className="text-center text-muted-foreground py-6 text-xs sm:text-sm">
+                          No entries found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
             </div>
           </CardContent>
         </Card>
