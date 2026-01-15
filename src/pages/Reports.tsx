@@ -565,6 +565,8 @@ const Reports = () => {
     { key: 'wind_speed', label: 'Wind Speed' },
     { key: 'photo_url', label: 'Photo URL' },
     { key: 'notes', label: 'Notes' },
+    { key: 'employee_ids', label: 'Crew (Employee IDs, comma-separated)' },
+    { key: 'equipment_ids', label: 'Equipment IDs (comma-separated)' },
   ];
 
   const shiftColumns = [
@@ -580,12 +582,9 @@ const Reports = () => {
   ];
 
   const handleWorkLogImport = async (data: Record<string, any>[]) => {
-    // Separate plow and shovel entries
-    const plowEntries: Record<string, any>[] = [];
-    const shovelEntries: Record<string, any>[] = [];
-
+    // Process each row and insert with junction table entries
     for (const row of data) {
-      const { entry_type, date, ...rest } = row;
+      const { entry_type, date, employee_ids, equipment_ids, ...rest } = row;
       const isShovel = entry_type?.toLowerCase() === 'shovel';
 
       // If date is provided separately, combine with time fields
@@ -593,7 +592,6 @@ const Reports = () => {
       let checkOutTime = rest.check_out_time;
 
       if (date && checkInTime && !checkInTime.includes('T') && !checkInTime.includes('-')) {
-        // If check_in_time is just a time (e.g., "08:00"), combine with date
         checkInTime = `${date}T${checkInTime}`;
       }
       if (date && checkOutTime && !checkOutTime.includes('T') && !checkOutTime.includes('-')) {
@@ -608,23 +606,67 @@ const Reports = () => {
         service_type: rest.service_type || (isShovel ? 'sidewalk' : 'plow'),
       };
 
+      // Parse employee and equipment IDs (comma-separated)
+      const employeeIdList = employee_ids 
+        ? String(employee_ids).split(',').map(id => id.trim()).filter(Boolean)
+        : [];
+      const equipmentIdList = equipment_ids 
+        ? String(equipment_ids).split(',').map(id => id.trim()).filter(Boolean)
+        : [];
+
       if (isShovel) {
-        shovelEntries.push(processedRow);
+        // Insert shovel work log
+        const { data: insertedLog, error } = await supabase
+          .from('shovel_work_logs')
+          .insert(processedRow as any)
+          .select('id')
+          .single();
+        if (error) throw error;
+
+        // Insert employee associations
+        if (employeeIdList.length > 0 && insertedLog) {
+          const employeeAssociations = employeeIdList.map(empId => ({
+            shovel_work_log_id: insertedLog.id,
+            employee_id: empId,
+          }));
+          const { error: empError } = await supabase
+            .from('shovel_work_log_employees')
+            .insert(employeeAssociations);
+          if (empError) throw empError;
+        }
       } else {
-        plowEntries.push(processedRow);
+        // Insert plow work log
+        const { data: insertedLog, error } = await supabase
+          .from('work_logs')
+          .insert(processedRow as any)
+          .select('id')
+          .single();
+        if (error) throw error;
+
+        // Insert employee associations
+        if (employeeIdList.length > 0 && insertedLog) {
+          const employeeAssociations = employeeIdList.map(empId => ({
+            work_log_id: insertedLog.id,
+            employee_id: empId,
+          }));
+          const { error: empError } = await supabase
+            .from('work_log_employees')
+            .insert(employeeAssociations);
+          if (empError) throw empError;
+        }
+
+        // Insert equipment associations (only for plow entries)
+        if (equipmentIdList.length > 0 && insertedLog) {
+          const equipmentAssociations = equipmentIdList.map(eqId => ({
+            work_log_id: insertedLog.id,
+            equipment_id: eqId,
+          }));
+          const { error: eqError } = await supabase
+            .from('work_log_equipment')
+            .insert(equipmentAssociations);
+          if (eqError) throw eqError;
+        }
       }
-    }
-
-    // Insert plow entries
-    if (plowEntries.length > 0) {
-      const { error } = await supabase.from('work_logs').insert(plowEntries as any);
-      if (error) throw error;
-    }
-
-    // Insert shovel entries
-    if (shovelEntries.length > 0) {
-      const { error } = await supabase.from('shovel_work_logs').insert(shovelEntries as any);
-      if (error) throw error;
     }
 
     queryClient.invalidateQueries({ queryKey: ['workLogsReport'] });
