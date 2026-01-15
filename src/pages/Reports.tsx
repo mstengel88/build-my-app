@@ -553,7 +553,7 @@ const Reports = () => {
   const workLogColumns = [
     { key: 'entry_type', label: 'Type (plow/shovel)' },
     { key: 'date', label: 'Date' },
-    { key: 'account_id', label: 'Account ID', required: true },
+    { key: 'account_id', label: 'Account (Name or ID)', required: true },
     { key: 'check_in_time', label: 'Check In Time', required: true },
     { key: 'check_out_time', label: 'Check Out Time' },
     { key: 'service_type', label: 'Service Type', required: true },
@@ -565,12 +565,12 @@ const Reports = () => {
     { key: 'wind_speed', label: 'Wind Speed' },
     { key: 'photo_url', label: 'Photo URL' },
     { key: 'notes', label: 'Notes' },
-    { key: 'employee_ids', label: 'Crew (Employee IDs, comma-separated)' },
-    { key: 'equipment_ids', label: 'Equipment IDs (comma-separated)' },
+    { key: 'employee_ids', label: 'Crew (Names or IDs, comma-separated)' },
+    { key: 'equipment_ids', label: 'Equipment (Names or IDs, comma-separated)' },
   ];
 
   const shiftColumns = [
-    { key: 'employee_id', label: 'Employee ID', required: true },
+    { key: 'employee_id', label: 'Employee (Name or ID)', required: true },
     { key: 'clock_in_time', label: 'Clock In Time', required: true },
     { key: 'clock_out_time', label: 'Clock Out Time' },
     { key: 'duration_minutes', label: 'Duration (min)' },
@@ -582,10 +582,55 @@ const Reports = () => {
   ];
 
   const handleWorkLogImport = async (data: Record<string, any>[]) => {
+    // Fetch all accounts, employees, and equipment for name-to-ID resolution
+    const [accountsRes, employeesRes, equipmentRes] = await Promise.all([
+      supabase.from('accounts').select('id, name'),
+      supabase.from('employees').select('id, name'),
+      supabase.from('equipment').select('id, name'),
+    ]);
+
+    const accountMap = new Map<string, string>();
+    const employeeMap = new Map<string, string>();
+    const equipmentMap = new Map<string, string>();
+
+    // Build lookup maps (lowercase name -> id, also keep id -> id)
+    accountsRes.data?.forEach(a => {
+      accountMap.set(a.name.toLowerCase(), a.id);
+      accountMap.set(a.id.toLowerCase(), a.id);
+    });
+    employeesRes.data?.forEach(e => {
+      employeeMap.set(e.name.toLowerCase(), e.id);
+      employeeMap.set(e.id.toLowerCase(), e.id);
+    });
+    equipmentRes.data?.forEach(eq => {
+      equipmentMap.set(eq.name.toLowerCase(), eq.id);
+      equipmentMap.set(eq.id.toLowerCase(), eq.id);
+    });
+
+    // Helper to resolve name or ID to UUID
+    const resolveAccount = (value: string): string => {
+      const resolved = accountMap.get(value.toLowerCase());
+      if (!resolved) throw new Error(`Account not found: "${value}"`);
+      return resolved;
+    };
+    const resolveEmployee = (value: string): string => {
+      const resolved = employeeMap.get(value.toLowerCase());
+      if (!resolved) throw new Error(`Employee not found: "${value}"`);
+      return resolved;
+    };
+    const resolveEquipment = (value: string): string => {
+      const resolved = equipmentMap.get(value.toLowerCase());
+      if (!resolved) throw new Error(`Equipment not found: "${value}"`);
+      return resolved;
+    };
+
     // Process each row and insert with junction table entries
     for (const row of data) {
-      const { entry_type, date, employee_ids, equipment_ids, ...rest } = row;
+      const { entry_type, date, employee_ids, equipment_ids, account_id, ...rest } = row;
       const isShovel = entry_type?.toLowerCase() === 'shovel';
+
+      // Resolve account name/ID to UUID
+      const resolvedAccountId = resolveAccount(String(account_id));
 
       // If date is provided separately, combine with time fields
       let checkInTime = rest.check_in_time;
@@ -600,18 +645,20 @@ const Reports = () => {
 
       const processedRow = {
         ...rest,
+        account_id: resolvedAccountId,
         check_in_time: checkInTime,
         check_out_time: checkOutTime || null,
         created_by: user?.id,
         service_type: rest.service_type || (isShovel ? 'sidewalk' : 'plow'),
       };
 
-      // Parse employee and equipment IDs (comma-separated)
+      // Parse and resolve employee names/IDs (comma-separated)
       const employeeIdList = employee_ids 
-        ? String(employee_ids).split(',').map(id => id.trim()).filter(Boolean)
+        ? String(employee_ids).split(',').map(v => v.trim()).filter(Boolean).map(resolveEmployee)
         : [];
+      // Parse and resolve equipment names/IDs (comma-separated)
       const equipmentIdList = equipment_ids 
-        ? String(equipment_ids).split(',').map(id => id.trim()).filter(Boolean)
+        ? String(equipment_ids).split(',').map(v => v.trim()).filter(Boolean).map(resolveEquipment)
         : [];
 
       if (isShovel) {
@@ -674,7 +721,22 @@ const Reports = () => {
   };
 
   const handleShiftImport = async (data: Record<string, any>[]) => {
-    const { error } = await supabase.from('time_clock').insert(data as any);
+    // Fetch employees for name-to-ID resolution
+    const { data: employees } = await supabase.from('employees').select('id, name');
+    const employeeMap = new Map<string, string>();
+    employees?.forEach(e => {
+      employeeMap.set(e.name.toLowerCase(), e.id);
+      employeeMap.set(e.id.toLowerCase(), e.id);
+    });
+
+    const resolvedData = data.map(row => {
+      const empValue = String(row.employee_id).toLowerCase();
+      const resolvedId = employeeMap.get(empValue);
+      if (!resolvedId) throw new Error(`Employee not found: "${row.employee_id}"`);
+      return { ...row, employee_id: resolvedId };
+    });
+
+    const { error } = await supabase.from('time_clock').insert(resolvedData as any);
     if (error) throw error;
     queryClient.invalidateQueries({ queryKey: ['timeClockReport'] });
   };
