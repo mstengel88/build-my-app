@@ -307,50 +307,95 @@ const Admin = () => {
     },
   });
 
-  // Create backup mutation
+  // Create backup mutation - exports actual data as JSON file
   const createBackupMutation = useMutation({
     mutationFn: async () => {
-      // Get counts of all entities
-      const [accounts, employees, equipment, workLogs, shovelWorkLogs, invoices, timeClock] = await Promise.all([
-        supabase.from('accounts').select('id', { count: 'exact', head: true }),
-        supabase.from('employees').select('id', { count: 'exact', head: true }),
-        supabase.from('equipment').select('id', { count: 'exact', head: true }),
-        supabase.from('work_logs').select('id', { count: 'exact', head: true }),
-        supabase.from('shovel_work_logs').select('id', { count: 'exact', head: true }),
-        supabase.from('invoices').select('id', { count: 'exact', head: true }),
-        supabase.from('time_clock').select('id', { count: 'exact', head: true }),
+      // Fetch all data from each table
+      const [
+        accountsData,
+        employeesData,
+        equipmentData,
+        workLogsData,
+        shovelWorkLogsData,
+        invoicesData,
+        timeClockData,
+        workLogEmployeesData,
+        workLogEquipmentData,
+        shovelWorkLogEmployeesData,
+      ] = await Promise.all([
+        supabase.from('accounts').select('*'),
+        supabase.from('employees').select('*'),
+        supabase.from('equipment').select('*'),
+        supabase.from('work_logs').select('*'),
+        supabase.from('shovel_work_logs').select('*'),
+        supabase.from('invoices').select('*'),
+        supabase.from('time_clock').select('*'),
+        supabase.from('work_log_employees').select('*'),
+        supabase.from('work_log_equipment').select('*'),
+        supabase.from('shovel_work_log_employees').select('*'),
       ]);
 
-      const entityCounts = {
-        accounts: accounts.count || 0,
-        employees: employees.count || 0,
-        equipment: equipment.count || 0,
-        work_logs: workLogs.count || 0,
-        shovel_work_logs: shovelWorkLogs.count || 0,
-        invoices: invoices.count || 0,
-        time_clock: timeClock.count || 0,
+      const backupData = {
+        exported_at: new Date().toISOString(),
+        exported_by: user?.email || user?.id,
+        data: {
+          accounts: accountsData.data || [],
+          employees: employeesData.data || [],
+          equipment: equipmentData.data || [],
+          work_logs: workLogsData.data || [],
+          shovel_work_logs: shovelWorkLogsData.data || [],
+          invoices: invoicesData.data || [],
+          time_clock: timeClockData.data || [],
+          work_log_employees: workLogEmployeesData.data || [],
+          work_log_equipment: workLogEquipmentData.data || [],
+          shovel_work_log_employees: shovelWorkLogEmployeesData.data || [],
+        },
+        counts: {
+          accounts: accountsData.data?.length || 0,
+          employees: employeesData.data?.length || 0,
+          equipment: equipmentData.data?.length || 0,
+          work_logs: workLogsData.data?.length || 0,
+          shovel_work_logs: shovelWorkLogsData.data?.length || 0,
+          invoices: invoicesData.data?.length || 0,
+          time_clock: timeClockData.data?.length || 0,
+          work_log_employees: workLogEmployeesData.data?.length || 0,
+          work_log_equipment: workLogEquipmentData.data?.length || 0,
+          shovel_work_log_employees: shovelWorkLogEmployeesData.data?.length || 0,
+        },
       };
 
-      const totalRecords = Object.values(entityCounts).reduce((a, b) => a + b, 0);
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
       const filename = `backup_${timestamp}.json`;
 
-      const { error } = await supabase.from('backups').insert({
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Also log the backup in the database
+      const totalRecords = Object.values(backupData.counts).reduce((a, b) => a + b, 0);
+      await supabase.from('backups').insert({
         filename,
         created_by: user?.id,
-        entity_counts: entityCounts,
-        file_size_bytes: totalRecords * 100, // Rough estimate
+        entity_counts: backupData.counts,
+        file_size_bytes: blob.size,
       });
 
-      if (error) throw error;
       return filename;
     },
     onSuccess: (filename) => {
       queryClient.invalidateQueries({ queryKey: ['backups'] });
-      toast({ title: 'Backup created successfully', description: `Created ${filename}` });
+      toast({ title: 'Backup exported successfully', description: `Downloaded ${filename}` });
     },
     onError: (error) => {
-      toast({ title: 'Error creating backup', description: String(error), variant: 'destructive' });
+      toast({ title: 'Error exporting backup', description: String(error), variant: 'destructive' });
     },
   });
 
@@ -442,7 +487,7 @@ const Admin = () => {
                     ) : (
                       <Download className="h-4 w-4" />
                     )}
-                    {createBackupMutation.isPending ? 'Creating...' : 'Backup Now'}
+                    {createBackupMutation.isPending ? 'Exporting...' : 'Export Now'}
                   </Button>
                   <Button className="gap-2 bg-success hover:bg-success/90 text-success-foreground">
                     <Clock className="h-4 w-4" />
