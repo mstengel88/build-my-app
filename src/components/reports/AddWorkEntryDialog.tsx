@@ -191,9 +191,8 @@ export const AddWorkEntryDialog = ({ open, onOpenChange }: AddWorkEntryDialogPro
     }
   };
 
-  const filteredEmployees = employees?.filter(emp => 
-    entryType === 'shovel' ? emp.category === 'shovel' : emp.category === 'plow'
-  ) || [];
+  // Show all employees - don't filter by category as many employees may not have it set
+  const filteredEmployees = employees || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
