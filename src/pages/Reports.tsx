@@ -556,10 +556,12 @@ const Reports = () => {
     { key: 'check_out_time', label: 'Check Out Time' },
     { key: 'service_type', label: 'Service Type', required: true },
     { key: 'duration_minutes', label: 'Duration (min)' },
-    { key: 'snow_depth', label: 'Snow Depth' },
-    { key: 'salt_used', label: 'Salt Used' },
-    { key: 'temperature', label: 'Temperature' },
-    { key: 'weather_description', label: 'Weather' },
+    { key: 'snow_depth', label: 'Snow Depth (in)' },
+    { key: 'salt_used', label: 'Salt Used (lbs)' },
+    { key: 'temperature', label: 'Temperature (°F)' },
+    { key: 'weather_description', label: 'Weather Description' },
+    { key: 'wind_speed', label: 'Wind Speed' },
+    { key: 'photo_url', label: 'Photo URL' },
     { key: 'notes', label: 'Notes' },
   ];
 
@@ -568,6 +570,10 @@ const Reports = () => {
     { key: 'clock_in_time', label: 'Clock In Time', required: true },
     { key: 'clock_out_time', label: 'Clock Out Time' },
     { key: 'duration_minutes', label: 'Duration (min)' },
+    { key: 'clock_in_latitude', label: 'Clock In Latitude' },
+    { key: 'clock_in_longitude', label: 'Clock In Longitude' },
+    { key: 'clock_out_latitude', label: 'Clock Out Latitude' },
+    { key: 'clock_out_longitude', label: 'Clock Out Longitude' },
     { key: 'notes', label: 'Notes' },
   ];
 
