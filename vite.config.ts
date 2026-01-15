@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "WinterPath Service Tracker",
-        short_name: "WinterPath",
+        name: "WinterWatch-Pro",
+        short_name: "WinterWatch",
         description: "Professional snow removal service management and tracking",
         theme_color: "#0ea5e9",
         background_color: "#0f172a",
