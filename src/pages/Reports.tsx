@@ -632,15 +632,28 @@ const Reports = () => {
       // Resolve account name/ID to UUID
       const resolvedAccountId = resolveAccount(String(account_id));
 
+      // Helper to normalize time to HH:MM:SS format (24-hour)
+      const normalizeTime = (time: string): string => {
+        if (!time) return '';
+        // If already has seconds, return as-is
+        if (/^\d{1,2}:\d{2}:\d{2}$/.test(time)) return time.padStart(8, '0');
+        // If HH:MM format, add seconds
+        if (/^\d{1,2}:\d{2}$/.test(time)) {
+          const [h, m] = time.split(':');
+          return `${h.padStart(2, '0')}:${m}:00`;
+        }
+        return time;
+      };
+
       // If date is provided separately, combine with time fields
       let checkInTime = rest.check_in_time;
       let checkOutTime = rest.check_out_time;
 
       if (date && checkInTime && !checkInTime.includes('T') && !checkInTime.includes('-')) {
-        checkInTime = `${date}T${checkInTime}`;
+        checkInTime = `${date}T${normalizeTime(checkInTime)}`;
       }
       if (date && checkOutTime && !checkOutTime.includes('T') && !checkOutTime.includes('-')) {
-        checkOutTime = `${date}T${checkOutTime}`;
+        checkOutTime = `${date}T${normalizeTime(checkOutTime)}`;
       }
 
       const processedRow = {
