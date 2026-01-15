@@ -12,6 +12,7 @@ type WorkEntry = {
   salt_used: number | null;
   temperature: number | null;
   weather_description: string | null;
+  notes: string | null;
   accounts: { name: string } | null;
   crew: string;
   equipmentName: string;
@@ -23,6 +24,7 @@ type TimeClockEntry = {
   clock_in_time: string;
   clock_out_time: string | null;
   duration_minutes: number | null;
+  notes: string | null;
   employees: { name: string } | null;
 };
 
@@ -137,7 +139,7 @@ export const generateWorkLogsPDF = (data: ReportData): jsPDF => {
   if (data.workEntries.length > 0) {
     autoTable(doc, {
       startY: yPos,
-      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment']],
+      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment', 'Notes']],
       body: data.workEntries.map(entry => [
         entry.type === 'plow' ? 'Plow' : 'Shovel',
         format(new Date(entry.check_in_time), 'MM/dd'),
@@ -150,14 +152,16 @@ export const generateWorkLogsPDF = (data: ReportData): jsPDF => {
         entry.salt_used ? `${entry.salt_used}lb` : '-',
         entry.crew || '-',
         entry.equipmentName || '-',
+        entry.notes || '-',
       ]),
-      styles: { fontSize: 8, cellPadding: 1.5 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 14, right: 14 },
       columnStyles: {
-        5: { cellWidth: 25 },
-        9: { cellWidth: 30 },
+        5: { cellWidth: 22 },
+        9: { cellWidth: 25 },
+        11: { cellWidth: 30 },
       },
     });
   } else {
@@ -186,18 +190,22 @@ export const generateTimeClockPDF = (data: ReportData): jsPDF => {
   if (data.timeClockEntries.length > 0) {
     autoTable(doc, {
       startY: yPos,
-      head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration']],
+      head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration', 'Notes']],
       body: data.timeClockEntries.map(entry => [
         (entry.employees as any)?.name || 'Unknown',
         format(new Date(entry.clock_in_time), 'MM/dd/yyyy'),
         formatTime(entry.clock_in_time),
         formatTime(entry.clock_out_time),
         entry.duration_minutes ? `${(entry.duration_minutes / 60).toFixed(1)}h` : '-',
+        entry.notes || '-',
       ]),
       styles: { fontSize: 9, cellPadding: 2 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 14, right: 14 },
+      columnStyles: {
+        5: { cellWidth: 40 },
+      },
     });
   } else {
     doc.setFontSize(10);
@@ -254,18 +262,22 @@ export const generateFullReportPDF = (data: ReportData): jsPDF => {
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration']],
+      head: [['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration', 'Notes']],
       body: data.timeClockEntries.map(entry => [
         (entry.employees as any)?.name || 'Unknown',
         format(new Date(entry.clock_in_time), 'MM/dd/yyyy'),
         formatTime(entry.clock_in_time),
         formatTime(entry.clock_out_time),
         entry.duration_minutes ? `${(entry.duration_minutes / 60).toFixed(1)}h` : '-',
+        entry.notes || '-',
       ]),
       styles: { fontSize: 9, cellPadding: 2 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 14, right: 14 },
+      columnStyles: {
+        5: { cellWidth: 40 },
+      },
     });
 
     yPos = (doc as any).lastAutoTable.finalY + 12;
@@ -280,7 +292,7 @@ export const generateFullReportPDF = (data: ReportData): jsPDF => {
   if (data.workEntries.length > 0) {
     autoTable(doc, {
       startY: yPos,
-      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment']],
+      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment', 'Notes']],
       body: data.workEntries.map(entry => [
         entry.type === 'plow' ? 'Plow' : 'Shovel',
         format(new Date(entry.check_in_time), 'MM/dd'),
@@ -293,14 +305,16 @@ export const generateFullReportPDF = (data: ReportData): jsPDF => {
         entry.salt_used ? `${entry.salt_used}lb` : '-',
         entry.crew || '-',
         entry.equipmentName || '-',
+        entry.notes || '-',
       ]),
-      styles: { fontSize: 8, cellPadding: 1.5 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 14, right: 14 },
       columnStyles: {
-        5: { cellWidth: 25 },
-        9: { cellWidth: 30 },
+        5: { cellWidth: 22 },
+        9: { cellWidth: 25 },
+        11: { cellWidth: 30 },
       },
     });
   } else {
