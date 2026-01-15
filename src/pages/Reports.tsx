@@ -551,6 +551,8 @@ const Reports = () => {
 
   // CSV Import handlers
   const workLogColumns = [
+    { key: 'entry_type', label: 'Type (plow/shovel)' },
+    { key: 'date', label: 'Date' },
     { key: 'account_id', label: 'Account ID', required: true },
     { key: 'check_in_time', label: 'Check In Time', required: true },
     { key: 'check_out_time', label: 'Check Out Time' },
@@ -578,15 +580,55 @@ const Reports = () => {
   ];
 
   const handleWorkLogImport = async (data: Record<string, any>[]) => {
-    const processedData = data.map(row => ({
-      ...row,
-      created_by: user?.id,
-      service_type: row.service_type || 'plow',
-    }));
-    
-    const { error } = await supabase.from('work_logs').insert(processedData as any);
-    if (error) throw error;
+    // Separate plow and shovel entries
+    const plowEntries: Record<string, any>[] = [];
+    const shovelEntries: Record<string, any>[] = [];
+
+    for (const row of data) {
+      const { entry_type, date, ...rest } = row;
+      const isShovel = entry_type?.toLowerCase() === 'shovel';
+
+      // If date is provided separately, combine with time fields
+      let checkInTime = rest.check_in_time;
+      let checkOutTime = rest.check_out_time;
+
+      if (date && checkInTime && !checkInTime.includes('T') && !checkInTime.includes('-')) {
+        // If check_in_time is just a time (e.g., "08:00"), combine with date
+        checkInTime = `${date}T${checkInTime}`;
+      }
+      if (date && checkOutTime && !checkOutTime.includes('T') && !checkOutTime.includes('-')) {
+        checkOutTime = `${date}T${checkOutTime}`;
+      }
+
+      const processedRow = {
+        ...rest,
+        check_in_time: checkInTime,
+        check_out_time: checkOutTime || null,
+        created_by: user?.id,
+        service_type: rest.service_type || (isShovel ? 'sidewalk' : 'plow'),
+      };
+
+      if (isShovel) {
+        shovelEntries.push(processedRow);
+      } else {
+        plowEntries.push(processedRow);
+      }
+    }
+
+    // Insert plow entries
+    if (plowEntries.length > 0) {
+      const { error } = await supabase.from('work_logs').insert(plowEntries as any);
+      if (error) throw error;
+    }
+
+    // Insert shovel entries
+    if (shovelEntries.length > 0) {
+      const { error } = await supabase.from('shovel_work_logs').insert(shovelEntries as any);
+      if (error) throw error;
+    }
+
     queryClient.invalidateQueries({ queryKey: ['workLogsReport'] });
+    queryClient.invalidateQueries({ queryKey: ['shovelLogsReport'] });
   };
 
   const handleShiftImport = async (data: Record<string, any>[]) => {
