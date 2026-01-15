@@ -250,9 +250,9 @@ export const AddWorkEntryDialog = ({ open, onOpenChange }: AddWorkEntryDialogPro
                   </>
                 ) : (
                   <>
-                    <SelectItem value="sidewalk">Sidewalk</SelectItem>
-                    <SelectItem value="entrance">Entrance</SelectItem>
-                    <SelectItem value="full">Full Service</SelectItem>
+                    <SelectItem value="shovel">Shovel Only</SelectItem>
+                    <SelectItem value="salt">Salt Only</SelectItem>
+                    <SelectItem value="both">Shovel & Salt</SelectItem>
                   </>
                 )}
               </SelectContent>
