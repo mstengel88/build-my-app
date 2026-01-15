@@ -190,9 +190,15 @@ export const AddWorkEntryDialog = ({ open, onOpenChange }: AddWorkEntryDialogPro
       setSaving(false);
     }
   };
-
-  // Show all employees - don't filter by category as many employees may not have it set
-  const filteredEmployees = employees || [];
+  // Filter employees by category based on entry type
+  const filteredEmployees = (employees || []).filter(emp => {
+    if (!emp.category) return true; // Show employees without category set
+    if (entryType === 'plow') {
+      return emp.category === 'plow' || emp.category === 'both';
+    } else {
+      return emp.category === 'shovel' || emp.category === 'both';
+    }
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,7 +214,7 @@ export const AddWorkEntryDialog = ({ open, onOpenChange }: AddWorkEntryDialogPro
           {/* Entry Type */}
           <div className="space-y-2">
             <Label>Entry Type</Label>
-            <Select value={entryType} onValueChange={(v: 'plow' | 'shovel') => setEntryType(v)}>
+            <Select value={entryType} onValueChange={(v: 'plow' | 'shovel') => { setEntryType(v); setSelectedEmployees([]); }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
