@@ -137,7 +137,7 @@ export const generateWorkLogsPDF = (data: ReportData): jsPDF => {
   if (data.workEntries.length > 0) {
     autoTable(doc, {
       startY: yPos,
-      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew']],
+      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment']],
       body: data.workEntries.map(entry => [
         entry.type === 'plow' ? 'Plow' : 'Shovel',
         format(new Date(entry.check_in_time), 'MM/dd'),
@@ -149,6 +149,7 @@ export const generateWorkLogsPDF = (data: ReportData): jsPDF => {
         entry.snow_depth ? `${entry.snow_depth}"` : '-',
         entry.salt_used ? `${entry.salt_used}lb` : '-',
         entry.crew || '-',
+        entry.equipmentName || '-',
       ]),
       styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
@@ -279,7 +280,7 @@ export const generateFullReportPDF = (data: ReportData): jsPDF => {
   if (data.workEntries.length > 0) {
     autoTable(doc, {
       startY: yPos,
-      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew']],
+      head: [['Type', 'Date', 'In', 'Out', 'Duration', 'Location', 'Service', 'Snow', 'Salt', 'Crew', 'Equipment']],
       body: data.workEntries.map(entry => [
         entry.type === 'plow' ? 'Plow' : 'Shovel',
         format(new Date(entry.check_in_time), 'MM/dd'),
@@ -291,6 +292,7 @@ export const generateFullReportPDF = (data: ReportData): jsPDF => {
         entry.snow_depth ? `${entry.snow_depth}"` : '-',
         entry.salt_used ? `${entry.salt_used}lb` : '-',
         entry.crew || '-',
+        entry.equipmentName || '-',
       ]),
       styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
