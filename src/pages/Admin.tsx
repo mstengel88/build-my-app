@@ -425,7 +425,12 @@ const Admin = () => {
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/10 text-primary border border-primary/20">
+                  v1.4.0
+                </span>
+              </div>
               <p className="text-muted-foreground">System overview and management</p>
             </div>
           </div>
