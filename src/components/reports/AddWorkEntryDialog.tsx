@@ -299,22 +299,35 @@ export const AddWorkEntryDialog = ({ open, onOpenChange }: AddWorkEntryDialogPro
             </div>
           </div>
 
-          {/* Employees */}
+          {/* Employees - Multi-select with checkboxes */}
           <div className="space-y-2">
             <Label>Crew Members</Label>
-            <Select 
-              value={selectedEmployees[0] || ''} 
-              onValueChange={(v) => setSelectedEmployees(v ? [v] : [])}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select employee" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredEmployees.map(emp => (
-                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="border rounded-md p-2 max-h-32 overflow-y-auto space-y-1">
+              {filteredEmployees.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No employees found</p>
+              ) : (
+                filteredEmployees.map(emp => (
+                  <label key={emp.id} className="flex items-center gap-2 p-1 hover:bg-muted/50 rounded cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.includes(emp.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEmployees([...selectedEmployees, emp.id]);
+                        } else {
+                          setSelectedEmployees(selectedEmployees.filter(id => id !== emp.id));
+                        }
+                      }}
+                      className="rounded border-input"
+                    />
+                    <span className="text-sm">{emp.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            {selectedEmployees.length > 0 && (
+              <p className="text-xs text-muted-foreground">{selectedEmployees.length} selected</p>
+            )}
           </div>
 
           {/* Equipment (only for plow) */}
