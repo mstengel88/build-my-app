@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -146,6 +146,7 @@ const Reports = () => {
   // Photo viewing state
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
+  const [photoThumbnails, setPhotoThumbnails] = useState<Record<string, string>>({});
   
   // Selection states
   const [selectedWorkLogs, setSelectedWorkLogs] = useState<Set<string>>(new Set());
@@ -352,6 +353,41 @@ const Reports = () => {
       new Date(b.check_in_time).getTime() - new Date(a.check_in_time).getTime()
     );
   }, [filteredWorkLogs, filteredShovelLogs, logType]);
+
+  // Load photo thumbnails for entries with photos
+  useEffect(() => {
+    const loadPhotoThumbnails = async () => {
+      const entriesWithPhotos = allWorkEntries
+        .filter(entry => entry.photo_url && !photoThumbnails[entry.id])
+        .slice(0, 100); // Limit to first 100 to avoid too many requests
+      
+      if (entriesWithPhotos.length === 0) return;
+      
+      const newThumbnails: Record<string, string> = {};
+      
+      await Promise.all(
+        entriesWithPhotos.map(async (entry) => {
+          try {
+            const { data, error } = await supabase.storage
+              .from('work-photos')
+              .createSignedUrl(entry.photo_url!, 60 * 60); // 1 hour
+            
+            if (!error && data?.signedUrl) {
+              newThumbnails[entry.id] = data.signedUrl;
+            }
+          } catch (e) {
+            console.error('Error loading thumbnail:', e);
+          }
+        })
+      );
+      
+      if (Object.keys(newThumbnails).length > 0) {
+        setPhotoThumbnails(prev => ({ ...prev, ...newThumbnails }));
+      }
+    };
+    
+    loadPhotoThumbnails();
+  }, [allWorkEntries]);
 
   // Calculate summary stats
   const summaryStats = useMemo(() => {
@@ -1570,19 +1606,21 @@ const Reports = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entry.photo_url ? (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7"
+                            <button 
+                              className="h-10 w-10 rounded-md overflow-hidden border border-border hover:border-primary transition-colors cursor-pointer bg-muted flex items-center justify-center"
                               onClick={() => handleViewPhoto(entry.photo_url!)}
                               disabled={isLoadingPhoto}
                             >
-                              {isLoadingPhoto ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              {photoThumbnails[entry.id] ? (
+                                <img 
+                                  src={photoThumbnails[entry.id]} 
+                                  alt="Work log photo" 
+                                  className="h-full w-full object-cover"
+                                />
                               ) : (
-                                <Image className="h-3.5 w-3.5" />
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                               )}
-                            </Button>
+                            </button>
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
