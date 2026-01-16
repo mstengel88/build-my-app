@@ -74,6 +74,7 @@ import { EditShiftDialog } from '@/components/reports/EditShiftDialog';
 import { EditWorkLogDialog, type EditableWorkEntry } from '@/components/reports/EditWorkLogDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
+import { PhotoThumbnail } from '@/components/reports/PhotoThumbnail';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
 import { useToast } from '@/hooks/use-toast';
 import { CSVImport } from '@/components/management/CSVImport';
@@ -1577,19 +1578,13 @@ const Reports = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entry.photo_url ? (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7"
-                              onClick={() => handleViewPhoto(entry.photo_url!)}
-                              disabled={loadingPhoto}
-                            >
-                              {loadingPhoto ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Image className="h-3.5 w-3.5" />
-                              )}
-                            </Button>
+                            <PhotoThumbnail 
+                              filePath={entry.photo_url} 
+                              onClick={(signedUrl) => {
+                                setPhotoUrl(signedUrl);
+                                setShowPhotoDialog(true);
+                              }}
+                            />
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
