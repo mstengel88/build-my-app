@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -141,6 +142,10 @@ const Reports = () => {
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
   const [shiftsExpanded, setShiftsExpanded] = useState(true);
+  
+  // Photo viewing state
+  const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
+  const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
   
   // Selection states
   const [selectedWorkLogs, setSelectedWorkLogs] = useState<Set<string>>(new Set());
@@ -918,6 +923,29 @@ const Reports = () => {
     }
   };
 
+  const handleViewPhoto = async (photoPath: string) => {
+    setIsLoadingPhoto(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('work-photos')
+        .createSignedUrl(photoPath, 60 * 60); // 1 hour expiry
+      
+      if (error) throw error;
+      if (data?.signedUrl) {
+        setViewingPhotoUrl(data.signedUrl);
+      }
+    } catch (error: any) {
+      console.error('Error loading photo:', error);
+      toast({
+        title: 'Error loading photo',
+        description: error.message || 'Failed to load the photo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingPhoto(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -1542,8 +1570,18 @@ const Reports = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entry.photo_url ? (
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <Image className="h-3.5 w-3.5" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7"
+                              onClick={() => handleViewPhoto(entry.photo_url!)}
+                              disabled={isLoadingPhoto}
+                            >
+                              {isLoadingPhoto ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Image className="h-3.5 w-3.5" />
+                              )}
                             </Button>
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
@@ -1615,6 +1653,24 @@ const Reports = () => {
         type={bulkEditType}
         onSuccess={handleBulkEditSuccess}
       />
+
+      {/* Photo Viewing Dialog */}
+      <Dialog open={!!viewingPhotoUrl} onOpenChange={(open) => !open && setViewingPhotoUrl(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Work Log Photo</DialogTitle>
+          </DialogHeader>
+          {viewingPhotoUrl && (
+            <div className="flex justify-center">
+              <img 
+                src={viewingPhotoUrl} 
+                alt="Work log photo" 
+                className="max-h-[70vh] rounded-lg object-contain"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
