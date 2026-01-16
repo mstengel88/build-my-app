@@ -18,6 +18,12 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -141,6 +147,11 @@ const Reports = () => {
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
   const [shiftsExpanded, setShiftsExpanded] = useState(true);
+  
+  // Photo viewing states
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [loadingPhoto, setLoadingPhoto] = useState(false);
   
   // Selection states
   const [selectedWorkLogs, setSelectedWorkLogs] = useState<Set<string>>(new Set());
@@ -918,6 +929,30 @@ const Reports = () => {
     }
   };
 
+  // Photo viewing handler
+  const handleViewPhoto = async (filePath: string) => {
+    setLoadingPhoto(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('work-photos')
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      
+      setPhotoUrl(data.signedUrl);
+      setShowPhotoDialog(true);
+    } catch (error: any) {
+      console.error('Error loading photo:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load photo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingPhoto(false);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -1542,8 +1577,18 @@ const Reports = () => {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entry.photo_url ? (
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <Image className="h-3.5 w-3.5" />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7"
+                              onClick={() => handleViewPhoto(entry.photo_url!)}
+                              disabled={loadingPhoto}
+                            >
+                              {loadingPhoto ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Image className="h-3.5 w-3.5" />
+                              )}
                             </Button>
                           ) : (
                             <span className="text-muted-foreground text-xs">-</span>
@@ -1615,6 +1660,31 @@ const Reports = () => {
         type={bulkEditType}
         onSuccess={handleBulkEditSuccess}
       />
+      
+      {/* Photo Viewer Dialog */}
+      <Dialog open={showPhotoDialog} onOpenChange={(open) => {
+        setShowPhotoDialog(open);
+        if (!open) setPhotoUrl(null);
+      }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Work Log Photo</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center">
+            {photoUrl ? (
+              <img 
+                src={photoUrl} 
+                alt="Work log photo" 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
