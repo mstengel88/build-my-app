@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PWAInstallBanner } from "@/components/pwa/PWAInstallBanner";
 import { SplashLoader, PageLoader } from "@/components/pwa/SplashLoader";
+import { OfflineIndicator } from "@/components/pwa/OfflineIndicator";
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -28,7 +29,29 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+// Optimized QueryClient for iOS performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data longer for offline reliability
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
+      // Reduce unnecessary refetches on iOS
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: 'always',
+      // Retry with exponential backoff
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      // Network mode for better offline handling
+      networkMode: 'offlineFirst',
+    },
+    mutations: {
+      // Retry mutations on network failure
+      retry: 1,
+      networkMode: 'offlineFirst',
+    },
+  },
+});
 
 // Component to handle role-based redirect after login
 const RoleBasedRedirect = () => {
@@ -67,6 +90,7 @@ const AppContent = () => {
   return (
     <>
       {showSplash && <SplashLoader onComplete={() => setShowSplash(false)} />}
+      <OfflineIndicator />
       <PWAInstallBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>

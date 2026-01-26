@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/winterwatch-pro-logo.png";
 
 interface SplashLoaderProps {
@@ -6,14 +7,14 @@ interface SplashLoaderProps {
   minDisplayTime?: number;
 }
 
-export const SplashLoader = ({ onComplete, minDisplayTime = 1500 }: SplashLoaderProps) => {
+export const SplashLoader = ({ onComplete, minDisplayTime = 800 }: SplashLoaderProps) => {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setFadeOut(true);
       if (onComplete) {
-        setTimeout(onComplete, 300);
+        setTimeout(onComplete, 200); // Faster transition
       }
     }, minDisplayTime);
 
@@ -22,21 +23,25 @@ export const SplashLoader = ({ onComplete, minDisplayTime = 1500 }: SplashLoader
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0f172a] transition-opacity duration-300 ${
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col items-center justify-center bg-background",
+        "transition-opacity duration-200 gpu-accelerate",
         fadeOut ? "opacity-0 pointer-events-none" : "opacity-100"
-      }`}
+      )}
     >
-      {/* Logo with pulse animation */}
-      <div className="relative animate-scale-in">
+      {/* Logo with optimized animation */}
+      <div className="relative gpu-accelerate">
         <img
           src={logo}
           alt="WinterWatch-Pro"
-          className="w-32 h-32 sm:w-40 sm:h-40 object-contain animate-pulse"
+          className="w-28 h-28 sm:w-36 sm:h-36 object-contain"
+          loading="eager"
+          decoding="async"
         />
         
-        {/* Spinning ring around logo */}
+        {/* Simplified spinning ring for better performance */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-2 border-transparent border-t-primary/60 border-r-primary/30 animate-spin" />
+          <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-2 border-transparent border-t-primary/60 animate-spin gpu-accelerate" />
         </div>
       </div>
 
@@ -69,27 +74,22 @@ export const SplashLoader = ({ onComplete, minDisplayTime = 1500 }: SplashLoader
   );
 };
 
-// Simplified page loader for route transitions
-export const PageLoader = () => (
-  <div className="min-h-screen bg-gradient-dark flex flex-col items-center justify-center gap-4">
-    <img
-      src={logo}
-      alt="Loading"
-      className="w-16 h-16 object-contain animate-pulse"
-    />
-    <div className="flex gap-1.5">
-      <span
-        className="w-2 h-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "0ms" }}
+// Memoized and optimized page loader for route transitions
+export const PageLoader = memo(() => (
+  <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 gpu-accelerate">
+    <div className="relative">
+      <img
+        src={logo}
+        alt="Loading"
+        className="w-14 h-14 object-contain"
+        loading="eager"
+        decoding="async"
       />
-      <span
-        className="w-2 h-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "150ms" }}
-      />
-      <span
-        className="w-2 h-2 rounded-full bg-primary animate-bounce"
-        style={{ animationDelay: "300ms" }}
-      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full border-2 border-transparent border-t-primary/60 animate-spin gpu-accelerate" />
+      </div>
     </div>
   </div>
-);
+));
+
+PageLoader.displayName = 'PageLoader';
