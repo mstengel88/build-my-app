@@ -241,7 +241,7 @@
     user-select: none;
   }
   
-  /* Better touch feedback */
+  /* Better touch feedback with GPU acceleration */
   .touch-feedback:active {
     opacity: 0.7;
     transform: scale(0.98);
@@ -252,6 +252,48 @@
   .btn, button, [role="button"] {
     min-height: 44px;
     min-width: 44px;
+  }
+  
+  /* GPU-accelerated animations */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* Prevent double-tap zoom on iOS */
+  * {
+    touch-action: manipulation;
+  }
+}
+
+/* Performance optimizations */
+@layer utilities {
+  /* Hardware-accelerated scrolling */
+  .scroll-smooth-ios {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    will-change: scroll-position;
+  }
+  
+  /* Reduce paint on fixed elements */
+  .fixed-optimized {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Optimized transitions */
+  .transition-gpu {
+    transition-property: transform, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+    will-change: transform, opacity;
+  }
+  
+  /* Content visibility for off-screen elements */
+  .lazy-render {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 200px;
   }
 }
 
