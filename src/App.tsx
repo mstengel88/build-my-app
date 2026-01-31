@@ -27,6 +27,7 @@ const AuditLog = lazy(() => import("./pages/AuditLog"));
 const Profile = lazy(() => import("./pages/Profile"));
 
 const Install = lazy(() => import("./pages/Install"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient for iOS performance
