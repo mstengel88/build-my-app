@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import winterwatchLogo from '@/assets/winterwatch-pro-logo.png';
 
 const Home = () => {
