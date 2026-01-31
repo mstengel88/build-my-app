@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import winterwatchLogo from '@/assets/winterwatch-pro-logo.png';
 
 const Home = () => {
@@ -224,16 +225,28 @@ const Home = () => {
               Continue with Google
             </Button>
 
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-primary hover:underline"
-              >
-                {isSignUp
-                  ? 'Already have an account? Sign in'
-                  : "Don't have an account? Sign up"}
-              </button>
+            <div className="mt-6 text-center space-y-2">
+              {!isSignUp && (
+                <ForgotPasswordDialog>
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    Forgot your password?
+                  </button>
+                </ForgotPasswordDialog>
+              )}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {isSignUp
+                    ? 'Already have an account? Sign in'
+                    : "Don't have an account? Sign up"}
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
