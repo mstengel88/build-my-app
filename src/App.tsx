@@ -98,6 +98,7 @@ const AppContent = () => {
           {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/install" element={<Install />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Role-based redirect */}
           <Route path="/redirect" element={<RoleBasedRedirect />} />
