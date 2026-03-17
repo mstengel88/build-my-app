@@ -144,6 +144,10 @@ const Reports = () => {
   const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
   const [shiftsExpanded, setShiftsExpanded] = useState(true);
   
+  // PDF settings dialog state
+  const [showPDFSettings, setShowPDFSettings] = useState(false);
+  const [pdfReportType, setPdfReportType] = useState<'full' | 'worklogs' | 'timeclock'>('full');
+  
   // Photo viewing state
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
   const [isLoadingPhoto, setIsLoadingPhoto] = useState(false);
