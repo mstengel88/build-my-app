@@ -1011,15 +1011,15 @@ const Reports = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'full')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('full'); setShowPDFSettings(true); }}>
                   <FileText className="h-4 w-4 mr-2" />
                   Full Report (PDF)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'worklogs')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('worklogs'); setShowPDFSettings(true); }}>
                   <MapPin className="h-4 w-4 mr-2" />
                   Work Logs (PDF)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'timeclock')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('timeclock'); setShowPDFSettings(true); }}>
                   <Clock className="h-4 w-4 mr-2" />
                   Time Clock (PDF)
                 </DropdownMenuItem>
@@ -1031,29 +1031,6 @@ const Reports = () => {
                 <DropdownMenuItem onClick={exportShiftsCSV}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
                   Daily Shifts (CSV)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
-                  <Printer className="h-4 w-4" />
-                  <span className="hidden xs:inline">Print</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'full')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Full Report
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'worklogs')}>
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Work Logs Only
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'timeclock')}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  Time Clock Only
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
