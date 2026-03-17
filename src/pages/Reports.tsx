@@ -69,6 +69,7 @@ import { EditShiftDialog } from '@/components/reports/EditShiftDialog';
 import { EditWorkLogDialog, type EditableWorkEntry } from '@/components/reports/EditWorkLogDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
+import { PDFSettingsDialog, type PDFSettings } from '@/components/reports/PDFSettingsDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
 import { useToast } from '@/hooks/use-toast';
 import { CSVImport } from '@/components/management/CSVImport';
