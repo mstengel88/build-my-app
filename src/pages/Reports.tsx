@@ -69,6 +69,7 @@ import { EditShiftDialog } from '@/components/reports/EditShiftDialog';
 import { EditWorkLogDialog, type EditableWorkEntry } from '@/components/reports/EditWorkLogDialog';
 import { ZapierSettingsDialog } from '@/components/reports/ZapierSettingsDialog';
 import { BulkEditDialog } from '@/components/reports/BulkEditDialog';
+import { PDFSettingsDialog, type PDFSettings } from '@/components/reports/PDFSettingsDialog';
 import { downloadReportPDF, printReportPDF, generateFullReportPDF, generateWorkLogsPDF, generateTimeClockPDF } from '@/lib/generateReportPDF';
 import { useToast } from '@/hooks/use-toast';
 import { CSVImport } from '@/components/management/CSVImport';
@@ -142,6 +143,10 @@ const Reports = () => {
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [bulkEditType, setBulkEditType] = useState<'work_logs' | 'time_clock' | 'shovel_work_logs'>('work_logs');
   const [shiftsExpanded, setShiftsExpanded] = useState(true);
+  
+  // PDF settings dialog state
+  const [showPDFSettings, setShowPDFSettings] = useState(false);
+  const [pdfReportType, setPdfReportType] = useState<'full' | 'worklogs' | 'timeclock'>('full');
   
   // Photo viewing state
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
@@ -1006,15 +1011,15 @@ const Reports = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'full')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('full'); setShowPDFSettings(true); }}>
                   <FileText className="h-4 w-4 mr-2" />
                   Full Report (PDF)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'worklogs')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('worklogs'); setShowPDFSettings(true); }}>
                   <MapPin className="h-4 w-4 mr-2" />
                   Work Logs (PDF)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => downloadReportPDF(getReportData(), 'timeclock')}>
+                <DropdownMenuItem onClick={() => { setPdfReportType('timeclock'); setShowPDFSettings(true); }}>
                   <Clock className="h-4 w-4 mr-2" />
                   Time Clock (PDF)
                 </DropdownMenuItem>
@@ -1026,29 +1031,6 @@ const Reports = () => {
                 <DropdownMenuItem onClick={exportShiftsCSV}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
                   Daily Shifts (CSV)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 flex-1 sm:flex-none">
-                  <Printer className="h-4 w-4" />
-                  <span className="hidden xs:inline">Print</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'full')}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Full Report
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'worklogs')}>
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Work Logs Only
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => printReportPDF(getReportData(), 'timeclock')}>
-                  <Clock className="h-4 w-4 mr-2" />
-                  Time Clock Only
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1709,6 +1691,13 @@ const Reports = () => {
           )}
         </DialogContent>
       </Dialog>
+      <PDFSettingsDialog
+        open={showPDFSettings}
+        onOpenChange={setShowPDFSettings}
+        reportType={pdfReportType}
+        onDownload={(settings) => downloadReportPDF(getReportData(), pdfReportType, settings)}
+        onPrint={(settings) => printReportPDF(getReportData(), pdfReportType, settings)}
+      />
     </AppLayout>
   );
 };
