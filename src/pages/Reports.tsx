@@ -1691,6 +1691,13 @@ const Reports = () => {
           )}
         </DialogContent>
       </Dialog>
+      <PDFSettingsDialog
+        open={showPDFSettings}
+        onOpenChange={setShowPDFSettings}
+        reportType={pdfReportType}
+        onDownload={(settings) => downloadReportPDF(getReportData(), pdfReportType, settings)}
+        onPrint={(settings) => printReportPDF(getReportData(), pdfReportType, settings)}
+      />
     </AppLayout>
   );
 };
