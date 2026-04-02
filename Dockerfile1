@@ -1,0 +1,17 @@
+FROM node:20-alpine
+#
+WORKDIR /app
+
+# install curl for health checks
+RUN apk add --no-cache curl
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+EXPOSE 8080
+
+# Use CMD as JSON array to avoid signal issues
+CMD ["npm", "run", "preview"]
+# or if your backend: CMD ["node", "server.js"]

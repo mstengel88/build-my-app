@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Snow Tracker Design System - Dark Slate Theme */
+
+@layer base {
+  :root {
+    /* Light mode - kept for reference but app uses dark mode */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 199 89% 48%;
+    --radius: 0.5rem;
+    
+    /* Snow Tracker Custom Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --shovel: 271 81% 56%;
+    --shovel-foreground: 0 0% 100%;
+    
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 199 89% 48%;
+  }
+
+  .dark {
+    /* Dark Slate Theme - Primary theme for Snow Tracker */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    
+    /* Card with semi-transparency for glassmorphism effect */
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Sky blue primary color */
+    --primary: 199 89% 48%;
+    --primary-foreground: 222 47% 11%;
+    
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217 33% 25%;
+    --input: 217 33% 17%;
+    --ring: 199 89% 48%;
+    
+    /* Snow Tracker Custom Colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --shovel: 271 81% 56%;
+    --shovel-foreground: 0 0% 100%;
+    
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 199 89% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Safe area padding for notched iPhones */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Prevent pull-to-refresh on iOS */
+    overscroll-behavior-y: contain;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Force dark mode by default */
+  html {
+    @apply dark;
+    /* Prevent iOS zoom on input focus */
+    touch-action: manipulation;
+  }
+  
+  /* iOS input styling fixes */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+  
+  /* Fix for iOS button styling */
+  button {
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth momentum scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer utilities {
+  /* Touch-friendly mobile utilities */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Glass effect for cards */
+  .glass {
+    @apply bg-card/50 backdrop-blur-sm;
+  }
+  
+  /* Gradient backgrounds */
+  .bg-gradient-dark {
+    background: linear-gradient(
+      to bottom right,
+      hsl(222 47% 11%),
+      hsl(217 33% 17%),
+      hsl(222 47% 11%)
+    );
+  }
+  
+  /* Mobile-first responsive utilities */
+  .mobile-scroll-x {
+    @apply overflow-x-auto -mx-4 px-4;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-card {
+    @apply rounded-lg p-3 sm:p-4;
+  }
+  
+  .mobile-text-sm {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .mobile-hidden {
+    @apply hidden sm:table-cell;
+  }
+  
+  .mobile-stack {
+    @apply flex flex-col gap-2 sm:flex-row sm:items-center;
+  }
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 640px) {
+  .container {
+    @apply px-3;
+  }
+  
+  /* Make tables scroll horizontally on mobile */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Compact table cells on mobile */
+  th, td {
+    @apply text-xs px-2 py-2 whitespace-nowrap;
+  }
+}
+
+/* iPhone Safe Area Support */
+@supports (padding: env(safe-area-inset-top)) {
+  /* Fixed bottom navigation safe area */
+  .fixed-bottom {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Fixed header safe area */
+  .fixed-top {
+    padding-top: calc(0.5rem + env(safe-area-inset-top));
+  }
+  
+  /* Full-height elements accounting for safe areas */
+  .safe-height {
+    min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  
+  /* Safe area margins for content */
+  .safe-x {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* iOS-specific touch improvements */
+@supports (-webkit-touch-callout: none) {
+  /* Prevent text selection on interactive elements */
+  button, a, .interactive {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Better touch feedback */
+  .touch-feedback:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+  }
+  
+  /* Larger touch targets for iPhone */
+  .btn, button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* iPhone SE and smaller screens */
+@media (max-width: 375px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .container {
+    @apply px-2;
+  }
+}
+
+/* iPhone Pro Max and larger screens */
+@media (min-width: 428px) and (max-width: 768px) {
+  .container {
+    @apply px-5;
+  }
+}
+
+/* Landscape mode for iPhones */
+@media (orientation: landscape) and (max-height: 500px) {
+  body {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  /* Compact header in landscape */
+  .mobile-header {
+    height: 44px;
+  }
+}
